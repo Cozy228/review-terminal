@@ -32,9 +32,9 @@ export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
             {ASCII_2025}
           </pre>
         </div>
-        <div className="idle-prompt flex items-center gap-2 text-base" style={{ color: 'var(--text-primary)' }}>
+        <div className="idle-prompt flex items-baseline gap-2 text-base font-mono" style={{ color: 'var(--text-primary)' }}>
           <span>[ Press ENTER to Initialize System ]</span>
-          <span ref={cursorRef}>▌</span>
+          <span ref={cursorRef} style={{ display: 'inline-block', verticalAlign: 'baseline', transform: 'translateY(-0.1em)' }}>▌</span>
         </div>
       </div>
     );

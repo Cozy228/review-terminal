@@ -1,3 +1,4 @@
+import { Heart, Sun, Moon } from 'lucide-react';
 import type { TerminalStatus } from '../types';
 import type { Theme } from '../hooks/useTheme';
 
@@ -32,9 +33,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, theme, onToggleThe
       }}
     >
       <div className="flex items-center gap-4">
-        <span className="flex items-center gap-2">
-          <span className="animate-pulse" style={{ color: 'var(--accent-error)' }}>♥</span>
-          <span>Made with love by developers for developers</span>
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span>Made with</span>
+          <Heart className="animate-pulse inline-block" size={14} fill="var(--accent-error)" style={{ color: 'var(--accent-error)' }} />
+          <span>by developers for developers</span>
         </span>
       </div>
       
@@ -50,9 +52,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, theme, onToggleThe
           className="hover:opacity-80 transition-opacity flex items-center gap-2"
           style={{ color: 'var(--text-primary)' }}
         >
-          <span style={{ opacity: theme === 'light' ? 1 : 0.5 }}>☀ Light</span>
+          <span className="flex items-center gap-1" style={{ opacity: theme === 'light' ? 1 : 0.5 }}>
+            <Sun size={14} /> Light
+          </span>
           <span style={{ color: 'var(--text-dim)' }}>/</span>
-          <span style={{ opacity: theme === 'dark' ? 1 : 0.5 }}>☾ Dark</span>
+          <span className="flex items-center gap-1" style={{ opacity: theme === 'dark' ? 1 : 0.5 }}>
+            <Moon size={14} /> Dark
+          </span>
         </button>
       </div>
     </div>

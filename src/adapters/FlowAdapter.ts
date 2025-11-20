@@ -2,52 +2,56 @@ import type { WorkflowData } from '../types';
 
 export class FlowAdapter {
   static toBlockMap(data: WorkflowData): string {
+    const { tickets } = data;
     const lines: string[] = [];
-    const blockWidth = 50;
     
-    lines.push('  Task Completion Heat Map');
+    lines.push('Task Completion Overview');
+    lines.push('');
     
-    // Create visual representation with different characters
-    let row1 = '  ';
-    let row2 = '  ';
-    let row3 = '  ';
+    // Create simple vertical bar chart
+    const maxValue = Math.max(tickets.done, tickets.inProgress, tickets.blocked);
+    const height = 10;
+    const barWidth = 8;
     
-    // Distribute blocks across three rows for visual effect
-    for (let i = 0; i < blockWidth; i++) {
-      const position = i / blockWidth;
+    // Add value labels on top
+    const valueLine = `    ${tickets.done.toString().padEnd(barWidth)}    ${tickets.inProgress.toString().padEnd(barWidth)}    ${tickets.blocked.toString().padEnd(barWidth)}`;
+    lines.push(valueLine);
+    
+    // Build chart from top to bottom
+    for (let row = height; row >= 0; row--) {
+      const threshold = (row / height) * maxValue;
+      let line = '  ';
       
-      if (position < 0.3) {
-        row1 += i % 3 === 0 ? '█' : i % 3 === 1 ? '▓' : '▓';
-      } else if (position < 0.5) {
-        row1 += i % 2 === 0 ? '▓' : '░';
+      // Done bar
+      if (tickets.done >= threshold) {
+        line += '█'.repeat(barWidth);
       } else {
-        row1 += '░';
+        line += ' '.repeat(barWidth);
+      }
+      line += '  ';
+      
+      // In Progress bar
+      if (tickets.inProgress >= threshold) {
+        line += '█'.repeat(barWidth);
+      } else {
+        line += ' '.repeat(barWidth);
+      }
+      line += '  ';
+      
+      // Blocked bar
+      if (tickets.blocked >= threshold) {
+        line += '█'.repeat(barWidth);
+      } else {
+        line += ' '.repeat(barWidth);
       }
       
-      if (position < 0.2) {
-        row2 += '░';
-      } else if (position < 0.5) {
-        row2 += i % 3 === 0 ? '█' : '▓';
-      } else if (position < 0.7) {
-        row2 += '░';
-      } else {
-        row2 += i % 2 === 0 ? '▓' : '█';
-      }
-      
-      if (position < 0.15) {
-        row3 += i % 2 === 0 ? '▓' : '█';
-      } else if (position < 0.4) {
-        row3 += '░';
-      } else if (position < 0.7) {
-        row3 += i % 3 === 0 ? '█' : i % 3 === 1 ? '▓' : '░';
-      } else {
-        row3 += '░';
-      }
+      lines.push(line);
     }
     
-    lines.push(row1);
-    lines.push(row2);
-    lines.push(row3);
+    // Add X-axis labels
+    const labelLine = `  ${' Done '.padEnd(barWidth)}  ${'Progress'.padEnd(barWidth)}  ${'Blocked'.padEnd(barWidth)}`;
+    lines.push('');
+    lines.push(labelLine);
     
     return lines.join('\n');
   }
@@ -57,10 +61,32 @@ export class FlowAdapter {
     
     return [
       '',
-      '  Statistics',
-      `  ✅ Completed:     ${tickets.done} (${((tickets.done / totalTickets) * 100).toFixed(1)}%)`,
-      `  🔄 In Progress:   ${tickets.inProgress}  (${((tickets.inProgress / totalTickets) * 100).toFixed(1)}%)`,
-      `  🔴 Blocked:       ${tickets.blocked}  (${((tickets.blocked / totalTickets) * 100).toFixed(1)}%)`,
+      'Statistics',
+      `Completed:     ${tickets.done} (${((tickets.done / totalTickets) * 100).toFixed(1)}%)`,
+      `In Progress:   ${tickets.inProgress}  (${((tickets.inProgress / totalTickets) * 100).toFixed(1)}%)`,
+      `Blocked:       ${tickets.blocked}  (${((tickets.blocked / totalTickets) * 100).toFixed(1)}%)`,
+    ];
+  }
+
+  static formatStatsWithIcons(data: WorkflowData) {
+    const { tickets, totalTickets } = data;
+    
+    return [
+      {
+        icon: 'CheckCircle2',
+        color: 'var(--accent-success)',
+        text: `Completed: ${tickets.done} (${((tickets.done / totalTickets) * 100).toFixed(1)}%)`
+      },
+      {
+        icon: 'Loader2',
+        color: 'var(--accent-info)',
+        text: `In Progress: ${tickets.inProgress} (${((tickets.inProgress / totalTickets) * 100).toFixed(1)}%)`
+      },
+      {
+        icon: 'XCircle',
+        color: 'var(--accent-error)',
+        text: `Blocked: ${tickets.blocked} (${((tickets.blocked / totalTickets) * 100).toFixed(1)}%)`
+      }
     ];
   }
 }

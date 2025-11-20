@@ -31,18 +31,118 @@ function App() {
 
   // Prepare data
   const gitChart = GitAdapter.toCommitChart(mockReviewData.git);
-  const gitStats = GitAdapter.formatStats(mockReviewData.git);
+  const gitStats = GitAdapter.formatStatsWithIcons(mockReviewData.git);
   const stackBars = StackAdapter.toHorizontalBars(mockReviewData.techStack);
   const stackFrameworks = StackAdapter.toFrameworkBars(mockReviewData.techStack);
   const flowHeatmap = FlowAdapter.toBlockMap(mockReviewData.workflow);
-  const flowStats = FlowAdapter.formatStats(mockReviewData.workflow);
+  const flowStats = FlowAdapter.formatStatsWithIcons(mockReviewData.workflow);
 
   const replayAnimation = useCallback(() => {
-    if (timelineRef.current) {
-      timelineRef.current.restart();
-      setPhase('idle');
-      setStatus('IDLE');
+    if (timelineRef.current && dataPageRef.current) {
+      // Reset states
+      setPhase('git');
+      setStatus('BUILDING...');
       setShowMenu(false);
+      
+      // Scroll to top
+      dataPageRef.current.scrollTop = 0;
+      
+      // Kill current timeline
+      timelineRef.current.kill();
+      
+      // Reset all modules to hidden
+      gsap.set(['.session-header', '.git-module', '.stack-module', '.flow-module', '.summary-module'], {
+        opacity: 0,
+        visibility: 'hidden'
+      });
+      gsap.set('.session-countdown', { opacity: 0 });
+      
+      // Clear all text content
+      [0, 1].forEach(i => {
+        gsap.set(`.git-log-${i}`, { text: '' });
+        gsap.set(`.git-check-${i}`, { opacity: 0 });
+        gsap.set(`.stack-log-${i}`, { text: '' });
+        gsap.set(`.stack-check-${i}`, { opacity: 0 });
+        gsap.set(`.flow-log-${i}`, { text: '' });
+        gsap.set(`.flow-check-${i}`, { opacity: 0 });
+      });
+      
+      // Create new timeline for replay
+      const replayTl = gsap.timeline();
+      
+      // Show session header
+      replayTl.set('.session-header', { visibility: 'visible' })
+        .to('.session-header', { opacity: 1, y: 0, duration: 0.5 })
+        .to('.session-countdown', { opacity: 1, duration: 0.3 }, '+=0.3')
+        .to('.session-countdown', { opacity: 0, duration: 0.3 }, '+=1');
+
+      // Git module
+      replayTl.set('.git-module', { opacity: 1, visibility: 'visible' })
+        .from('.git-title', { opacity: 0, duration: 0.5 })
+        .to('.git-log-0', { text: '> Fetching commit history...', duration: 0.8 })
+        .to('.git-check-0', { opacity: 1, duration: 0.2 })
+        .to('.git-log-1', { text: `> Analyzing ${mockReviewData.git.totalCommits} commits across ${mockReviewData.techStack.totalProjects} repositories...`, duration: 1 })
+        .to('.git-check-1', { opacity: 1, duration: 0.2 })
+        .from('.git-chart', { opacity: 0, duration: 1 })
+        .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
+        .to(dataPageRef.current, {
+          scrollTo: { y: '.git-module', autoKill: false, offsetY: -100 },
+          duration: 1,
+          ease: 'power2.out'
+        }, '-=0.5');
+
+      replayTl.add(() => setPhase('stack'), '+=2');
+
+      // Stack module
+      replayTl.set('.stack-module', { opacity: 1, visibility: 'visible' })
+        .from('.stack-title', { opacity: 0, duration: 0.5 })
+        .to('.stack-log-0', { text: '> Resolving dependency tree...', duration: 0.8 })
+        .to('.stack-check-0', { opacity: 1, duration: 0.2 })
+        .to('.stack-log-1', { text: `> Analyzing ${mockReviewData.techStack.totalPackages} packages across ${mockReviewData.techStack.totalProjects} projects...`, duration: 1 })
+        .to('.stack-check-1', { opacity: 1, duration: 0.2 })
+        .from('.stack-bars', { opacity: 0, duration: 1 })
+        .to(dataPageRef.current, {
+          scrollTo: { y: '.stack-module', autoKill: false, offsetY: -100 },
+          duration: 1,
+          ease: 'power2.out'
+        }, '-=0.5');
+
+      replayTl.add(() => setPhase('flow'), '+=2');
+
+      // Flow module
+      replayTl.set('.flow-module', { opacity: 1, visibility: 'visible' })
+        .from('.flow-title', { opacity: 0, duration: 0.5 })
+        .to('.flow-log-0', { text: '> Syncing issue tracker...', duration: 0.8 })
+        .to('.flow-check-0', { opacity: 1, duration: 0.2 })
+        .to('.flow-log-1', { text: `> Processing ${mockReviewData.workflow.totalTickets} tickets from Jira...`, duration: 1 })
+        .to('.flow-check-1', { opacity: 1, duration: 0.2 })
+        .from('.flow-heatmap', { opacity: 0, duration: 1 })
+        .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
+        .to(dataPageRef.current, {
+          scrollTo: { y: '.flow-module', autoKill: false, offsetY: -100 },
+          duration: 1,
+          ease: 'power2.out'
+        }, '-=0.5');
+
+      replayTl.add(() => {
+        setPhase('summary');
+        setStatus('COMPLETE');
+        setShowMenu(true);
+      }, '+=2');
+
+      // Summary
+      replayTl.set('.summary-module', { opacity: 1, visibility: 'visible' })
+        .from('.summary-title', { opacity: 0, duration: 0.5 })
+        .from('.summary-badge', { opacity: 0, scale: 0.8, duration: 1, ease: 'back.out' })
+        .from('.summary-message', { opacity: 0, duration: 0.5 })
+        .to(dataPageRef.current, {
+          scrollTo: { y: '.summary-module', autoKill: false, offsetY: -150 },
+          duration: 1.5,
+          ease: 'power2.out'
+        }, '-=0.5');
+
+      replayTl.play();
+      timelineRef.current = replayTl;
     }
   }, []);
 
@@ -75,10 +175,9 @@ function App() {
         .to(authPageRef.current, { opacity: 1, duration: 0.3 });
     }
 
-    // Auth sequence
+    // Auth sequence (only 3 lines now)
     const authLines = [
       '> Initializing session...',
-      '> Authenticating as @' + mockReviewData.user.username + '...',
       '> Loading personal metrics...',
       '> Establishing secure connection to github.com...'
     ];
@@ -97,11 +196,11 @@ function App() {
       .to(`.auth-check-${i}`, { scale: 1, duration: 0.1 });
     });
 
-    // Show session established
-    tl.to('.auth-session', { opacity: 1, duration: 0.5 }, '+=0.3')
-      .to('.auth-countdown', { opacity: 1, duration: 0.3 }, '+=0.5');
+    // Show GitHub redirect
+    tl.to('.auth-redirect', { opacity: 1, duration: 0.5 }, '+=0.5')
+      .to('.auth-redirect', { opacity: 0, duration: 0.3 }, '+=1.5');
 
-    tl.add(() => setPhase('git'), '+=1.5');
+    tl.add(() => setPhase('git'), '+=0.5');
 
     // Hide auth, show data page
     if (authPageRef.current && dataPageRef.current) {
@@ -109,6 +208,12 @@ function App() {
         .set(authPageRef.current, { display: 'none' })
         .set(dataPageRef.current, { display: 'block' });
     }
+
+    // Show session header
+    tl.set('.session-header', { visibility: 'visible' })
+      .to('.session-header', { opacity: 1, y: 0, duration: 0.5 })
+      .to('.session-countdown', { opacity: 1, duration: 0.3 }, '+=0.3')
+      .to('.session-countdown', { opacity: 0, duration: 0.3 }, '+=1');
 
     // Git module
     tl.set('.git-module', { opacity: 1, visibility: 'visible' })
@@ -118,16 +223,15 @@ function App() {
       .to('.git-log-1', { text: `> Analyzing ${mockReviewData.git.totalCommits} commits across ${mockReviewData.techStack.totalProjects} repositories...`, duration: 1 })
       .to('.git-check-1', { opacity: 1, duration: 0.2 })
       .from('.git-chart', { opacity: 0, duration: 1 })
-      .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 });
+      .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
+      // Scroll to show git module bottom
+      .to(dataPageRef.current, {
+        scrollTo: { y: '.git-module', autoKill: false, offsetY: -100 },
+        duration: 1,
+        ease: 'power2.out'
+      }, '-=0.5');
 
     tl.add(() => setPhase('stack'), '+=2');
-
-    // Scroll to stack module
-    tl.to(dataPageRef.current, { 
-      scrollTo: { y: '.stack-module', offsetY: 50 },
-      duration: 1, 
-      ease: 'power2.inOut' 
-    });
 
     // Stack module
     tl.set('.stack-module', { opacity: 1, visibility: 'visible' })
@@ -136,16 +240,15 @@ function App() {
       .to('.stack-check-0', { opacity: 1, duration: 0.2 })
       .to('.stack-log-1', { text: `> Analyzing ${mockReviewData.techStack.totalPackages} packages across ${mockReviewData.techStack.totalProjects} projects...`, duration: 1 })
       .to('.stack-check-1', { opacity: 1, duration: 0.2 })
-      .from('.stack-bars', { opacity: 0, duration: 1 });
+      .from('.stack-bars', { opacity: 0, duration: 1 })
+      // Scroll to show stack module bottom
+      .to(dataPageRef.current, {
+        scrollTo: { y: '.stack-module', autoKill: false, offsetY: -100 },
+        duration: 1,
+        ease: 'power2.out'
+      }, '-=0.5');
 
     tl.add(() => setPhase('flow'), '+=2');
-
-    // Scroll to flow module
-    tl.to(dataPageRef.current, { 
-      scrollTo: { y: '.flow-module', offsetY: 50 },
-      duration: 1, 
-      ease: 'power2.inOut' 
-    });
 
     // Flow module
     tl.set('.flow-module', { opacity: 1, visibility: 'visible' })
@@ -155,7 +258,13 @@ function App() {
       .to('.flow-log-1', { text: `> Processing ${mockReviewData.workflow.totalTickets} tickets from Jira...`, duration: 1 })
       .to('.flow-check-1', { opacity: 1, duration: 0.2 })
       .from('.flow-heatmap', { opacity: 0, duration: 1 })
-      .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 });
+      .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
+      // Scroll to show flow module bottom
+      .to(dataPageRef.current, {
+        scrollTo: { y: '.flow-module', autoKill: false, offsetY: -100 },
+        duration: 1,
+        ease: 'power2.out'
+      }, '-=0.5');
 
     tl.add(() => {
       setPhase('summary');
@@ -163,19 +272,17 @@ function App() {
       setShowMenu(true);
     }, '+=2');
 
-    // Scroll to summary
-    tl.to(dataPageRef.current, { 
-      scrollTo: { y: '.summary-module', offsetY: 100 },
-      duration: 1.5, 
-      ease: 'power2.inOut' 
-    });
-
     // Summary
     tl.set('.summary-module', { opacity: 1, visibility: 'visible' })
       .from('.summary-title', { opacity: 0, duration: 0.5 })
       .from('.summary-badge', { opacity: 0, scale: 0.8, duration: 1, ease: 'back.out' })
       .from('.summary-message', { opacity: 0, duration: 0.5 })
-      .from('.summary-menu', { opacity: 0, duration: 0.5 });
+      // Scroll to show summary
+      .to(dataPageRef.current, {
+        scrollTo: { y: '.summary-module', autoKill: false, offsetY: -150 },
+        duration: 1.5,
+        ease: 'power2.out'
+      }, '-=0.5');
 
     tl.play();
   }, []);
@@ -184,14 +291,7 @@ function App() {
   useEffect(() => {
     // Main timeline for auth and data animations (stays paused until Enter)
     const mainTl = gsap.timeline({ 
-      paused: true,
-      onUpdate: function() {
-        if (dataPageRef.current) {
-          const scrollTop = dataPageRef.current.scrollTop;
-          const scrollHeight = dataPageRef.current.scrollHeight - dataPageRef.current.clientHeight;
-          setScrollProgress(scrollHeight > 0 ? scrollTop / scrollHeight : 0);
-        }
-      }
+      paused: true
     });
 
     timelineRef.current = mainTl;
@@ -211,6 +311,50 @@ function App() {
       mainTl.kill();
     };
   }, []);
+
+  // Animate summary menu when it appears
+  useEffect(() => {
+    if (showMenu) {
+      gsap.from('.summary-menu', { 
+        opacity: 0, 
+        y: 10,
+        duration: 0.5,
+        ease: 'power2.out'
+      });
+    }
+  }, [showMenu]);
+
+  // Update scroll progress when dataPage scrolls
+  useEffect(() => {
+    const updateScrollProgress = () => {
+      if (dataPageRef.current) {
+        const scrollTop = dataPageRef.current.scrollTop;
+        const scrollHeight = dataPageRef.current.scrollHeight - dataPageRef.current.clientHeight;
+        setScrollProgress(scrollHeight > 0 ? scrollTop / scrollHeight : 0);
+      }
+    };
+
+    const dataPage = dataPageRef.current;
+    if (dataPage) {
+      dataPage.addEventListener('scroll', updateScrollProgress);
+      // Also update on animation frame for smooth updates during GSAP scrollTo
+      const rafUpdate = () => {
+        updateScrollProgress();
+        if (phase !== 'idle' && phase !== 'auth') {
+          requestAnimationFrame(rafUpdate);
+        }
+      };
+      if (phase !== 'idle' && phase !== 'auth') {
+        requestAnimationFrame(rafUpdate);
+      }
+    }
+
+    return () => {
+      if (dataPage) {
+        dataPage.removeEventListener('scroll', updateScrollProgress);
+      }
+    };
+  }, [phase]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -238,10 +382,11 @@ function App() {
       <AuthPage 
         ref={authPageRef} 
         username={mockReviewData.user.username}
-        role={mockReviewData.user.role}
       />
       <DataPage 
         ref={dataPageRef}
+        username={mockReviewData.user.username}
+        role={mockReviewData.user.role}
         gitChart={gitChart}
         gitStats={gitStats}
         stackBars={stackBars}
