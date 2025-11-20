@@ -28,6 +28,7 @@ function App() {
   const dataPageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLSpanElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const userScrollingRef = useRef(false);
 
   // Prepare data
   const gitChart = GitAdapter.toCommitChart(mockReviewData.git);
@@ -37,6 +38,50 @@ function App() {
   const flowHeatmap = FlowAdapter.toBlockMap(mockReviewData.workflow);
   const flowStats = FlowAdapter.formatStatsWithIcons(mockReviewData.workflow);
 
+  // Smooth auto-scroll helper
+  const smoothAutoScroll = useCallback(() => {
+    if (!dataPageRef.current || userScrollingRef.current) return;
+    
+    const container = dataPageRef.current;
+    
+    // Find all module elements
+    const modules = container.querySelectorAll<HTMLElement>('.session-header, .git-module, .stack-module, .flow-module, .summary-module');
+    
+    // Find the last visible module (opacity > 0 and visibility: visible)
+    let lastVisibleModule: HTMLElement | null = null;
+    modules.forEach(module => {
+      const style = window.getComputedStyle(module);
+      const opacity = parseFloat(style.opacity);
+      const visibility = style.visibility;
+      
+      if (opacity > 0 && visibility === 'visible') {
+        lastVisibleModule = module;
+      }
+    });
+    
+    // If no visible module found, don't scroll
+    if (!lastVisibleModule) return;
+    
+    // Calculate the bottom position of the last visible module
+    const moduleRect = (lastVisibleModule as HTMLElement).getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate target scroll position to show the bottom of the last visible module
+    // with some padding (80px from bottom of viewport)
+    const moduleBottomRelativeToContainer = moduleRect.bottom - containerRect.top + container.scrollTop;
+    const targetScroll = moduleBottomRelativeToContainer - container.clientHeight + 80;
+    
+    // Only scroll if we need to (target is below current scroll position)
+    if (targetScroll > container.scrollTop) {
+      gsap.to(container, {
+        scrollTop: Math.max(0, targetScroll),
+        duration: 0.6,
+        ease: 'power1.out',
+        overwrite: false
+      });
+    }
+  }, []);
+
   const replayAnimation = useCallback(() => {
     if (timelineRef.current && dataPageRef.current) {
       // Reset states
@@ -44,8 +89,9 @@ function App() {
       setStatus('BUILDING...');
       setShowMenu(false);
       
-      // Scroll to top
+      // Reset scroll state
       dataPageRef.current.scrollTop = 0;
+      userScrollingRef.current = false;
       
       // Kill current timeline
       timelineRef.current.kill();
@@ -67,8 +113,10 @@ function App() {
         gsap.set(`.flow-check-${i}`, { opacity: 0 });
       });
       
-      // Create new timeline for replay
-      const replayTl = gsap.timeline();
+      // Create new timeline for replay with auto-scroll on update
+      const replayTl = gsap.timeline({
+        onUpdate: smoothAutoScroll
+      });
       
       // Show session header
       replayTl.set('.session-header', { visibility: 'visible' })
@@ -84,12 +132,7 @@ function App() {
         .to('.git-log-1', { text: `> Analyzing ${mockReviewData.git.totalCommits} commits across ${mockReviewData.techStack.totalProjects} repositories...`, duration: 1 })
         .to('.git-check-1', { opacity: 1, duration: 0.2 })
         .from('.git-chart', { opacity: 0, duration: 1 })
-        .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
-        .to(dataPageRef.current, {
-          scrollTo: { y: '.git-module', autoKill: false, offsetY: -100 },
-          duration: 1,
-          ease: 'power2.out'
-        }, '-=0.5');
+        .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 });
 
       replayTl.add(() => setPhase('stack'), '+=2');
 
@@ -101,11 +144,7 @@ function App() {
         .to('.stack-log-1', { text: `> Analyzing ${mockReviewData.techStack.totalPackages} packages across ${mockReviewData.techStack.totalProjects} projects...`, duration: 1 })
         .to('.stack-check-1', { opacity: 1, duration: 0.2 })
         .from('.stack-bars', { opacity: 0, duration: 1 })
-        .to(dataPageRef.current, {
-          scrollTo: { y: '.stack-module', autoKill: false, offsetY: -100 },
-          duration: 1,
-          ease: 'power2.out'
-        }, '-=0.5');
+        .from('.stack-frameworks', { opacity: 0, duration: 0.8 }, '-=0.3');
 
       replayTl.add(() => setPhase('flow'), '+=2');
 
@@ -117,17 +156,11 @@ function App() {
         .to('.flow-log-1', { text: `> Processing ${mockReviewData.workflow.totalTickets} tickets from Jira...`, duration: 1 })
         .to('.flow-check-1', { opacity: 1, duration: 0.2 })
         .from('.flow-heatmap', { opacity: 0, duration: 1 })
-        .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
-        .to(dataPageRef.current, {
-          scrollTo: { y: '.flow-module', autoKill: false, offsetY: -100 },
-          duration: 1,
-          ease: 'power2.out'
-        }, '-=0.5');
+        .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 });
 
       replayTl.add(() => {
         setPhase('summary');
         setStatus('COMPLETE');
-        setShowMenu(true);
       }, '+=2');
 
       // Summary
@@ -135,16 +168,13 @@ function App() {
         .from('.summary-title', { opacity: 0, duration: 0.5 })
         .from('.summary-badge', { opacity: 0, scale: 0.8, duration: 1, ease: 'back.out' })
         .from('.summary-message', { opacity: 0, duration: 0.5 })
-        .to(dataPageRef.current, {
-          scrollTo: { y: '.summary-module', autoKill: false, offsetY: -150 },
-          duration: 1.5,
-          ease: 'power2.out'
-        }, '-=0.5');
+        .add(() => setShowMenu(true))
+        .from('.summary-menu', { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' });
 
       replayTl.play();
       timelineRef.current = replayTl;
     }
-  }, []);
+  }, [smoothAutoScroll]);
 
   const resetToIdle = useCallback(() => {
     if (timelineRef.current) {
@@ -206,7 +236,12 @@ function App() {
     if (authPageRef.current && dataPageRef.current) {
       tl.to(authPageRef.current, { opacity: 0, duration: 0.3 })
         .set(authPageRef.current, { display: 'none' })
-        .set(dataPageRef.current, { display: 'block' });
+        .set(dataPageRef.current, { display: 'block' })
+        .add(() => {
+          // Reset scroll state and enable smooth auto-scroll for data page
+          userScrollingRef.current = false;
+          tl.eventCallback('onUpdate', smoothAutoScroll);
+        });
     }
 
     // Show session header
@@ -223,13 +258,7 @@ function App() {
       .to('.git-log-1', { text: `> Analyzing ${mockReviewData.git.totalCommits} commits across ${mockReviewData.techStack.totalProjects} repositories...`, duration: 1 })
       .to('.git-check-1', { opacity: 1, duration: 0.2 })
       .from('.git-chart', { opacity: 0, duration: 1 })
-      .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
-      // Scroll to show git module bottom
-      .to(dataPageRef.current, {
-        scrollTo: { y: '.git-module', autoKill: false, offsetY: -100 },
-        duration: 1,
-        ease: 'power2.out'
-      }, '-=0.5');
+      .from('.git-stats', { opacity: 0, duration: 0.5, stagger: 0.2 });
 
     tl.add(() => setPhase('stack'), '+=2');
 
@@ -241,12 +270,7 @@ function App() {
       .to('.stack-log-1', { text: `> Analyzing ${mockReviewData.techStack.totalPackages} packages across ${mockReviewData.techStack.totalProjects} projects...`, duration: 1 })
       .to('.stack-check-1', { opacity: 1, duration: 0.2 })
       .from('.stack-bars', { opacity: 0, duration: 1 })
-      // Scroll to show stack module bottom
-      .to(dataPageRef.current, {
-        scrollTo: { y: '.stack-module', autoKill: false, offsetY: -100 },
-        duration: 1,
-        ease: 'power2.out'
-      }, '-=0.5');
+      .from('.stack-frameworks', { opacity: 0, duration: 0.8 }, '-=0.3');
 
     tl.add(() => setPhase('flow'), '+=2');
 
@@ -258,18 +282,11 @@ function App() {
       .to('.flow-log-1', { text: `> Processing ${mockReviewData.workflow.totalTickets} tickets from Jira...`, duration: 1 })
       .to('.flow-check-1', { opacity: 1, duration: 0.2 })
       .from('.flow-heatmap', { opacity: 0, duration: 1 })
-      .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 })
-      // Scroll to show flow module bottom
-      .to(dataPageRef.current, {
-        scrollTo: { y: '.flow-module', autoKill: false, offsetY: -100 },
-        duration: 1,
-        ease: 'power2.out'
-      }, '-=0.5');
+      .from('.flow-stats', { opacity: 0, duration: 0.5, stagger: 0.2 });
 
     tl.add(() => {
       setPhase('summary');
       setStatus('COMPLETE');
-      setShowMenu(true);
     }, '+=2');
 
     // Summary
@@ -277,15 +294,11 @@ function App() {
       .from('.summary-title', { opacity: 0, duration: 0.5 })
       .from('.summary-badge', { opacity: 0, scale: 0.8, duration: 1, ease: 'back.out' })
       .from('.summary-message', { opacity: 0, duration: 0.5 })
-      // Scroll to show summary
-      .to(dataPageRef.current, {
-        scrollTo: { y: '.summary-module', autoKill: false, offsetY: -150 },
-        duration: 1.5,
-        ease: 'power2.out'
-      }, '-=0.5');
+      .add(() => setShowMenu(true))
+      .from('.summary-menu', { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' });
 
     tl.play();
-  }, []);
+  }, [smoothAutoScroll]);
 
   // Initialize timeline and cursor animation
   useEffect(() => {
@@ -312,19 +325,8 @@ function App() {
     };
   }, []);
 
-  // Animate summary menu when it appears
-  useEffect(() => {
-    if (showMenu) {
-      gsap.from('.summary-menu', { 
-        opacity: 0, 
-        y: 10,
-        duration: 0.5,
-        ease: 'power2.out'
-      });
-    }
-  }, [showMenu]);
 
-  // Update scroll progress when dataPage scrolls
+  // Update scroll progress and detect user scrolling
   useEffect(() => {
     const updateScrollProgress = () => {
       if (dataPageRef.current) {
@@ -334,9 +336,21 @@ function App() {
       }
     };
 
+    const handleWheel = () => {
+      // User is manually scrolling
+      userScrollingRef.current = true;
+      // Re-enable auto-scroll after 2 seconds of no manual scrolling
+      setTimeout(() => {
+        userScrollingRef.current = false;
+      }, 2000);
+    };
+
     const dataPage = dataPageRef.current;
     if (dataPage) {
       dataPage.addEventListener('scroll', updateScrollProgress);
+      dataPage.addEventListener('wheel', handleWheel, { passive: true });
+      dataPage.addEventListener('touchmove', handleWheel, { passive: true });
+      
       // Also update on animation frame for smooth updates during GSAP scrollTo
       const rafUpdate = () => {
         updateScrollProgress();
@@ -352,6 +366,8 @@ function App() {
     return () => {
       if (dataPage) {
         dataPage.removeEventListener('scroll', updateScrollProgress);
+        dataPage.removeEventListener('wheel', handleWheel);
+        dataPage.removeEventListener('touchmove', handleWheel);
       }
     };
   }, [phase]);

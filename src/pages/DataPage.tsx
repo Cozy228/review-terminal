@@ -105,6 +105,8 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
           </div>
           <pre className="stack-bars mb-6" style={{ color: 'var(--text-secondary)' }}>
             {stackBars}
+          </pre>
+          <pre className="stack-frameworks" style={{ color: 'var(--text-secondary)' }}>
             {stackFrameworks}
           </pre>
         </div>
