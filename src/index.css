@@ -127,3 +127,20 @@
 .window-button:active {
   filter: brightness(0.9);
 }
+
+/* Auth Pac-Man - SVG Pixel Art */
+.auth-pacman-track {
+  min-height: 120px;
+}
+
+.auth-pacman-svg {
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  transition: none;
+}
+
+.auth-pellet {
+  transition: opacity 0.2s ease-out;
+}

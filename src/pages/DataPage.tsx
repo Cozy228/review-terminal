@@ -49,18 +49,23 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
         className="fixed inset-0 overflow-y-auto px-6 md:px-24 py-8 md:py-12"
         style={{ display: 'none', paddingTop: '56px', paddingBottom: '4rem' }}
       >
-        {/* Session Header */}
+        {/* Welcome Header */}
         <div className="session-header max-w-4xl mx-auto mb-16" style={{ opacity: 0, visibility: 'hidden' }}>
-          <div className="border-t border-b py-6" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="text-center font-medium text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-              SESSION ESTABLISHED
-            </div>
-            <div className="text-center" style={{ color: 'var(--text-secondary)' }}>
-              User: @{username} | Role: {role} | Access: Full
+          <div className="py-8" style={{ borderTop: '2px dashed var(--accent-success)', borderBottom: '2px dashed var(--accent-success)' }}>
+            <div className="text-center mb-4">
+              <div className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-success)' }}>
+                🎉 Welcome to Your 2025 Tech Annual Review
+              </div>
+              <div className="text-lg mb-3" style={{ color: 'var(--text-primary)' }}>
+                @{username} · {role}
+              </div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                A year of code, commits, and continuous growth
+              </div>
             </div>
           </div>
           <div className="session-countdown mt-6 text-center" style={{ color: 'var(--text-dim)', opacity: 0 }}>
-            &gt; Starting build process...
+            &gt; Compiling your achievements...
           </div>
         </div>
 
@@ -153,15 +158,22 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
               v2026.0.0 Initializing...
             </div>
           </div>
-          {showMenu && (
-            <div className="summary-menu border rounded px-8 py-4" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
-              <span className="cursor-pointer hover:text-info" onClick={onReplay}>[R]eplay</span>
-              <span className="mx-4">|</span>
-              <span className="cursor-pointer hover:text-info">[D]ownload PDF</span>
-              <span className="mx-4">|</span>
-              <span className="cursor-pointer hover:text-info">[S]hare to Engage</span>
-            </div>
-          )}
+          <div
+            className="summary-menu border rounded px-8 py-4"
+            style={{
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+              opacity: showMenu ? 1 : 0,
+              pointerEvents: showMenu ? 'auto' : 'none',
+              visibility: showMenu ? 'visible' : 'hidden',
+            }}
+          >
+            <span className="cursor-pointer hover:text-info" onClick={onReplay}>[R]eplay</span>
+            <span className="mx-4">|</span>
+            <span className="cursor-pointer hover:text-info">[D]ownload PDF</span>
+            <span className="mx-4">|</span>
+            <span className="cursor-pointer hover:text-info">[S]hare to Engage</span>
+          </div>
           <div className="mt-8" style={{ color: 'var(--text-dim)' }}>
             &gt; <span className="animate-pulse">_</span>
           </div>

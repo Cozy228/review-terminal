@@ -3,12 +3,14 @@ import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { useTheme } from './hooks/useTheme';
+import { useAuthFlow } from './hooks/useAuthFlow';
 import { StatusBar } from './components/StatusBar';
 import { ASCIIScrollbar } from './components/ASCIIScrollbar';
 import { WindowChrome } from './components/WindowChrome';
 import { IdlePage } from './pages/IdlePage';
 import { AuthPage } from './pages/AuthPage';
 import { DataPage } from './pages/DataPage';
+import { AuthCallback } from './pages/AuthCallback';
 import { mockReviewData } from './data/mockData';
 import { GitAdapter } from './adapters/GitAdapter';
 import { StackAdapter } from './adapters/StackAdapter';
@@ -23,6 +25,8 @@ function App() {
   const [phase, setPhase] = useState<AnimationPhase>('idle');
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [displayUser, setDisplayUser] = useState<string>('guest');
+  const [authDataReady, setAuthDataReady] = useState(false);
   
   const idlePageRef = useRef<HTMLDivElement>(null);
   const authPageRef = useRef<HTMLDivElement>(null);
@@ -177,22 +181,152 @@ function App() {
     }
   }, [smoothAutoScroll]);
 
+  const handleAuthComplete = useCallback((user?: string | null) => {
+    console.log('handleAuthComplete called with user:', user);
+    if (user) {
+      setDisplayUser(user);
+      console.log('Set displayUser to:', user);
+    } else {
+      setDisplayUser(mockReviewData.user.username);
+      console.log('No user provided, using mock username:', mockReviewData.user.username);
+    }
+
+    const swapTl = gsap.timeline();
+    swapTl
+      // First, fade out the redirect card
+      .to('.auth-redirect', { opacity: 0, duration: 0.4, ease: 'power2.inOut' })
+      .set('.auth-redirect', { display: 'none' })
+      // Prepare Pac-Man card
+      .set('.auth-pacman', { display: 'block', opacity: 0, y: 10 })
+      // Smoothly slide up auth content
+      .to('.auth-content', { 
+        y: -30, 
+        duration: 0.6, 
+        ease: 'power3.out' 
+      })
+      // Fade in and slide up Pac-Man card at the same time
+      .to('.auth-pacman', { 
+        opacity: 1,
+        y: 0,
+        duration: 0.6, 
+        ease: 'power3.out' 
+      }, '<'); // '<' means start at the same time as previous animation
+
+    // Pac-Man eating pellets animation (SVG version)
+    // Simplified: Only move right, then teleport back and repeat
+    const pacmanTl = gsap.timeline({ repeat: -1 });
+    
+    // Calculate pellet positions: marginLeft 60px, gap 16px, pellet width 8px
+    // Pellet centers: 60+4, 60+8+16+4, 60+8+16+8+16+4, etc.
+    // = 64, 88, 112, 136, 160, 184
+    const pelletPositions = [64, 88, 112, 136, 160, 184];
+    const pacmanMouthPosition = 24; // Center of Pac-Man's mouth (48px width / 2)
+    
+    // Reset to start position
+    pacmanTl.set('.auth-pacman-svg', { left: '0px', scaleX: 1 });
+    pacmanTl.set('.auth-pellet', { opacity: 0.8 });
+    
+    // Move Pac-Man from left to right, eating pellets
+    pacmanTl.to('.auth-pacman-svg', {
+      left: '232px',
+      duration: 2.4,
+      ease: 'none',
+      onUpdate: function() {
+        const progress = this.progress();
+        const pacmanLeft = progress * 232; // Current left position
+        const pacmanMouth = pacmanLeft + pacmanMouthPosition;
+        
+        // Hide pellets when Pac-Man's mouth reaches them
+        pelletPositions.forEach((pelletPos, i) => {
+          const pellet = document.querySelector(`.auth-pellet[data-index="${i}"]`) as HTMLElement;
+          if (pellet) {
+            pellet.style.opacity = pacmanMouth >= pelletPos ? '0' : '0.8';
+          }
+        });
+      }
+    })
+    // Brief pause at the end
+    .to({}, { duration: 0.3 })
+    // Quick fade out and teleport back
+    .to('.auth-pacman-svg', { opacity: 0, duration: 0.2 })
+    .set('.auth-pacman-svg', { left: '0px' })
+    .set('.auth-pellet', { opacity: 0.8 })
+    .to('.auth-pacman-svg', { opacity: 1, duration: 0.2 });
+
+    // Simulate data load (5 seconds), then finish eating and continue
+    gsap.delayedCall(5, () => {
+      // Stop the looping animation
+      pacmanTl.pause();
+      
+      // Update status text
+      setAuthDataReady(true);
+      
+      // Get current position
+      const currentLeft = gsap.getProperty('.auth-pacman-svg', 'left') as number;
+      
+      // Finish eating remaining pellets (always moving right)
+      const finishTl = gsap.timeline();
+      
+      finishTl.to('.auth-pacman-svg', {
+        left: '232px',
+        duration: ((232 - currentLeft) / 232) * 2.4, // Proportional time
+        ease: 'none',
+        onUpdate: function() {
+          const left = gsap.getProperty('.auth-pacman-svg', 'left') as number;
+          const mouth = left + pacmanMouthPosition;
+          pelletPositions.forEach((pelletPos, i) => {
+            const pellet = document.querySelector(`.auth-pellet[data-index="${i}"]`) as HTMLElement;
+            if (pellet) {
+              pellet.style.opacity = mouth >= pelletPos ? '0' : '0.8';
+            }
+          });
+        }
+      });
+
+      // Wait 3 more seconds after finishing, then resume timeline
+      gsap.delayedCall(3, () => {
+        const tl = timelineRef.current;
+        if (!tl) return;
+        const waitTime = tl.labels?.['auth-wait'];
+        if (waitTime !== undefined && tl.time() < waitTime) {
+          gsap.delayedCall(0.1, () => {
+            if (tl.time() >= waitTime) tl.play();
+          });
+          return;
+        }
+        tl.play();
+      });
+    });
+  }, []);
+
+  const { authStage, authError, fetchAndOpenPopup, retryAuth, resetAuth } = useAuthFlow({
+    onSuccess: handleAuthComplete,
+  });
+
   const resetToIdle = useCallback(() => {
     if (timelineRef.current) {
       timelineRef.current.pause(0);
-      setPhase('idle');
-      setStatus('IDLE');
-      setShowMenu(false);
     }
-  }, []);
+    setPhase('idle');
+    setStatus('IDLE');
+    setShowMenu(false);
+    setDisplayUser('guest');
+    setAuthDataReady(false);
+    resetAuth();
+  }, [resetAuth]);
 
   const startAnimation = useCallback(() => {
     if (!timelineRef.current) return;
     
     setPhase('auth');
     setStatus('BUILDING...');
+    resetAuth();
+    setAuthDataReady(false);
     
     const tl = timelineRef.current;
+    gsap.set('.auth-redirect', { display: 'block', opacity: 0 });
+    gsap.set('.auth-pacman', { display: 'none', opacity: 0 });
+    gsap.set('.auth-content', { y: 0 }); // Reset auth content position
     
     // Hide idle page
     if (idlePageRef.current) {
@@ -227,15 +361,17 @@ function App() {
       .to(`.auth-check-${i}`, { scale: 1, duration: 0.1 });
     });
 
-    // Show GitHub redirect
+    // Show GitHub redirect and open popup
     tl.to('.auth-redirect', { opacity: 1, duration: 0.5 }, '+=0.5')
-      .to('.auth-redirect', { opacity: 0, duration: 0.3 }, '+=1.5');
+      .add(() => { void fetchAndOpenPopup(); }, '-=0')
+      .addPause('auth-wait');
 
-    tl.add(() => setPhase('git'), '+=0.5');
+    tl.add(() => setPhase('git'));
 
-    // Hide auth, show data page
+    // Hide auth, show data page (fade out entire auth content as one unit)
     if (authPageRef.current && dataPageRef.current) {
-      tl.to(authPageRef.current, { opacity: 0, duration: 0.3 })
+      tl.to('.auth-content', { opacity: 0, duration: 0.4 })
+        .to(authPageRef.current, { opacity: 0, duration: 0.2 })
         .set(authPageRef.current, { display: 'none' })
         .set(dataPageRef.current, { display: 'block' })
         .add(() => {
@@ -299,7 +435,7 @@ function App() {
       .from('.summary-menu', { opacity: 0, y: 10, duration: 0.5, ease: 'power2.out' });
 
     tl.play();
-  }, [smoothAutoScroll]);
+  }, [smoothAutoScroll, resetAuth, fetchAndOpenPopup]);
 
   // Initialize timeline and cursor animation
   useEffect(() => {
@@ -325,7 +461,6 @@ function App() {
       mainTl.kill();
     };
   }, []);
-
 
   // Update scroll progress and detect user scrolling
   useEffect(() => {
@@ -393,17 +528,27 @@ function App() {
 
   const showScrollbar = phase !== 'idle' && phase !== 'auth';
 
+  const isAuthCallbackRoute = window.location.pathname === (import.meta.env.VITE_AUTH_CALLBACK_PATH || '/auth/callback');
+
+  if (isAuthCallbackRoute) {
+    return <AuthCallback />;
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden">
-      <WindowChrome username={mockReviewData.user.username} />
+      <WindowChrome username={displayUser} />
       <IdlePage ref={idlePageRef} cursorRef={cursorRef} />
       <AuthPage 
         ref={authPageRef} 
         username={mockReviewData.user.username}
+        authStage={authStage}
+        authError={authError}
+        authDataReady={authDataReady}
+        onRetry={retryAuth}
       />
       <DataPage 
         ref={dataPageRef}
-        username={mockReviewData.user.username}
+        username={displayUser}
         role={mockReviewData.user.role}
         gitChart={gitChart}
         gitStats={gitStats}
