@@ -5,6 +5,7 @@ import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { useTheme } from './hooks/useTheme';
 import { StatusBar } from './components/StatusBar';
 import { ASCIIScrollbar } from './components/ASCIIScrollbar';
+import { WindowChrome } from './components/WindowChrome';
 import { IdlePage } from './pages/IdlePage';
 import { AuthPage } from './pages/AuthPage';
 import { DataPage } from './pages/DataPage';
@@ -394,6 +395,7 @@ function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
+      <WindowChrome username={mockReviewData.user.username} />
       <IdlePage ref={idlePageRef} cursorRef={cursorRef} />
       <AuthPage 
         ref={authPageRef} 

@@ -109,3 +109,21 @@
     border-color: var(--border-subtle);
   }
 }
+
+/* Window Chrome Styles */
+.window-chrome {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.window-button {
+  -webkit-app-region: no-drag;
+}
+
+.window-button:hover {
+  filter: brightness(1.1);
+}
+
+.window-button:active {
+  filter: brightness(0.9);
+}

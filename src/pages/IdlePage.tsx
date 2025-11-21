@@ -16,7 +16,7 @@ export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
       <div 
         ref={ref}
         className="fixed inset-0 flex flex-col items-center justify-center"
-        style={{ display: 'flex' }}
+        style={{ display: 'flex', paddingTop: '40px' }}
       >
         <div className="text-center mb-8 -mt-20">
           <pre className="idle-title-1 mb-3" style={{ fontSize: '0.75rem', color: 'var(--accent-info)' }}>

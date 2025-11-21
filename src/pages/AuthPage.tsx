@@ -11,8 +11,8 @@ export const AuthPage = forwardRef<HTMLDivElement, AuthPageProps>(
     return (
       <div 
         ref={ref}
-        className="fixed inset-0 flex flex-col items-center justify-center"
-        style={{ display: 'none', opacity: 0 }}
+        className="fixed inset-0 flex flex-col items-center justify-center px-6 md:px-24"
+        style={{ display: 'none', paddingTop: '40px' }}
       >
         <div className="max-w-2xl w-full px-6">
           <div className="flex items-center gap-4 mb-3">

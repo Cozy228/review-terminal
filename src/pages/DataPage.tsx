@@ -47,7 +47,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
       <div 
         ref={ref}
         className="fixed inset-0 overflow-y-auto px-6 md:px-24 py-8 md:py-12"
-        style={{ display: 'none', paddingBottom: '4rem' }}
+        style={{ display: 'none', paddingTop: '56px', paddingBottom: '4rem' }}
       >
         {/* Session Header */}
         <div className="session-header max-w-4xl mx-auto mb-16" style={{ opacity: 0, visibility: 'hidden' }}>
