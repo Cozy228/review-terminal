@@ -8,10 +8,11 @@ import {
 
 interface IdlePageProps {
   cursorRef: React.RefObject<HTMLSpanElement | null>;
+  onExecutiveMode?: () => void;
 }
 
 export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
-  ({ cursorRef }, ref) => {
+  ({ cursorRef, onExecutiveMode }, ref) => {
     return (
       <div 
         ref={ref}
@@ -32,9 +33,18 @@ export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
             {ASCII_2025}
           </pre>
         </div>
-        <div className="idle-prompt flex items-baseline gap-2 text-base font-mono" style={{ color: 'var(--text-primary)' }}>
-          <span>[ Press ENTER to Initialize System ]</span>
-          <span ref={cursorRef} style={{ display: 'inline-block', verticalAlign: 'baseline', transform: 'translateY(-0.1em)' }}>▌</span>
+        <div className="idle-prompt flex flex-col items-center gap-3 text-base font-mono" style={{ color: 'var(--text-primary)' }}>
+          <div className="flex items-baseline gap-2">
+            <span>[ Press ENTER to Initialize System ]</span>
+            <span ref={cursorRef} style={{ display: 'inline-block', verticalAlign: 'baseline', transform: 'translateY(-0.1em)' }}>▌</span>
+          </div>
+          <div 
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            style={{ color: 'var(--accent-highlight)', fontSize: '0.875rem' }}
+            onClick={onExecutiveMode}
+          >
+            [ Press E for Executive Dashboard ]
+          </div>
         </div>
       </div>
     );

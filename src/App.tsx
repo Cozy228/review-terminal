@@ -10,6 +10,7 @@ import { WindowChrome } from './components/WindowChrome';
 import { IdlePage } from './pages/IdlePage';
 import { AuthPage } from './pages/AuthPage';
 import { DataPage } from './pages/DataPage';
+import { ExecutiveDataPage } from './pages/ExecutiveDataPage';
 import { AuthCallback } from './pages/AuthCallback';
 import { mockReviewData } from './data/mockData';
 import { GitAdapter } from './adapters/GitAdapter';
@@ -28,9 +29,14 @@ function App() {
   const [displayUser, setDisplayUser] = useState<string>('guest');
   const [authDataReady, setAuthDataReady] = useState(false);
   
+  // Executive mode state
+  const [isExecutiveMode, setIsExecutiveMode] = useState(false);
+  const [execShowMenu, setExecShowMenu] = useState(false);
+  
   const idlePageRef = useRef<HTMLDivElement>(null);
   const authPageRef = useRef<HTMLDivElement>(null);
   const dataPageRef = useRef<HTMLDivElement>(null);
+  const execPageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLSpanElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const userScrollingRef = useRef(false);
@@ -77,6 +83,41 @@ function App() {
     const targetScroll = moduleBottomRelativeToContainer - container.clientHeight + 80;
     
     // Only scroll if we need to (target is below current scroll position)
+    if (targetScroll > container.scrollTop) {
+      gsap.to(container, {
+        scrollTop: Math.max(0, targetScroll),
+        duration: 0.6,
+        ease: 'power1.out',
+        overwrite: false
+      });
+    }
+  }, []);
+
+  // Smooth auto-scroll helper for executive page
+  const smoothExecAutoScroll = useCallback(() => {
+    if (!execPageRef.current || userScrollingRef.current) return;
+    
+    const container = execPageRef.current;
+    const modules = container.querySelectorAll<HTMLElement>('.exec-header, .exec-basics, .exec-delivery, .exec-quality, .exec-cost, .exec-summary');
+    
+    let lastVisibleModule: HTMLElement | null = null;
+    modules.forEach(module => {
+      const style = window.getComputedStyle(module);
+      const opacity = parseFloat(style.opacity);
+      const visibility = style.visibility;
+      
+      if (opacity > 0 && visibility === 'visible') {
+        lastVisibleModule = module;
+      }
+    });
+    
+    if (!lastVisibleModule) return;
+    
+    const moduleRect = (lastVisibleModule as HTMLElement).getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const moduleBottomRelativeToContainer = moduleRect.bottom - containerRect.top + container.scrollTop;
+    const targetScroll = moduleBottomRelativeToContainer - container.clientHeight + 80;
+    
     if (targetScroll > container.scrollTop) {
       gsap.to(container, {
         scrollTop: Math.max(0, targetScroll),
@@ -312,8 +353,132 @@ function App() {
     setShowMenu(false);
     setDisplayUser('guest');
     setAuthDataReady(false);
+    setIsExecutiveMode(false);
+    setExecShowMenu(false);
     resetAuth();
+    
+    // Reset executive page visibility
+    if (execPageRef.current) {
+      gsap.set(execPageRef.current, { display: 'none' });
+    }
+    // Reset idle page visibility
+    if (idlePageRef.current) {
+      gsap.set(idlePageRef.current, { display: 'flex', opacity: 1 });
+    }
   }, [resetAuth]);
+
+  // Executive mode animation
+  const startExecutiveAnimation = useCallback(() => {
+    if (!timelineRef.current) return;
+    
+    setIsExecutiveMode(true);
+    setPhase('git'); // Reuse phase for animation tracking
+    setStatus('BUILDING...');
+    setExecShowMenu(false);
+    
+    const tl = gsap.timeline({
+      onUpdate: smoothExecAutoScroll
+    });
+    timelineRef.current = tl;
+    
+    // Hide idle page
+    if (idlePageRef.current) {
+      tl.to(idlePageRef.current, { opacity: 0, duration: 0.3 })
+        .set(idlePageRef.current, { display: 'none' });
+    }
+    
+    // Show executive page
+    if (execPageRef.current) {
+      tl.set(execPageRef.current, { display: 'block' });
+      execPageRef.current.scrollTop = 0;
+      userScrollingRef.current = false;
+    }
+    
+    // Reset all modules to hidden
+    gsap.set(['.exec-header', '.exec-dimension-dept', '.exec-dimension-vendor', '.exec-dimension-geo', '.exec-menu-section'], {
+      opacity: 0,
+      visibility: 'hidden'
+    });
+    
+    // Animate header
+    tl.set('.exec-header', { visibility: 'visible' })
+      .to('.exec-header', { opacity: 1, duration: 0.8 })
+      .to({}, { duration: 1 });
+    
+    // Animate Department dimension
+    tl.set('.exec-dimension-dept', { visibility: 'visible' })
+      .to('.exec-dimension-dept', { opacity: 1, duration: 1 })
+      .to({}, { duration: 1.5 });
+    
+    // Animate Vendor dimension
+    tl.set('.exec-dimension-vendor', { visibility: 'visible' })
+      .to('.exec-dimension-vendor', { opacity: 1, duration: 1 })
+      .to({}, { duration: 1.5 });
+    
+    // Animate Geographic dimension
+    tl.set('.exec-dimension-geo', { visibility: 'visible' })
+      .to('.exec-dimension-geo', { opacity: 1, duration: 1 })
+      .to({}, { duration: 1.5 });
+    
+    // Show menu at end
+    tl.add(() => {
+      setPhase('summary');
+      setStatus('COMPLETE');
+    })
+      .set('.exec-menu-section', { visibility: 'visible' })
+      .to('.exec-menu-section', { opacity: 1, duration: 0.8 })
+      .add(() => setExecShowMenu(true));
+    
+    tl.play();
+  }, [smoothExecAutoScroll]);
+
+  const replayExecAnimation = useCallback(() => {
+    if (execPageRef.current) {
+      execPageRef.current.scrollTop = 0;
+      userScrollingRef.current = false;
+    }
+    setPhase('git');
+    setStatus('BUILDING...');
+    setExecShowMenu(false);
+    
+    // Reset all modules
+    gsap.set(['.exec-header', '.exec-dimension-dept', '.exec-dimension-vendor', '.exec-dimension-geo', '.exec-menu-section'], {
+      opacity: 0,
+      visibility: 'hidden'
+    });
+    
+    const tl = gsap.timeline({
+      onUpdate: smoothExecAutoScroll
+    });
+    timelineRef.current = tl;
+    
+    // Replay animation sequence
+    tl.set('.exec-header', { visibility: 'visible' })
+      .to('.exec-header', { opacity: 1, duration: 0.8 })
+      .to({}, { duration: 1 });
+    
+    tl.set('.exec-dimension-dept', { visibility: 'visible' })
+      .to('.exec-dimension-dept', { opacity: 1, duration: 1 })
+      .to({}, { duration: 1.5 });
+    
+    tl.set('.exec-dimension-vendor', { visibility: 'visible' })
+      .to('.exec-dimension-vendor', { opacity: 1, duration: 1 })
+      .to({}, { duration: 1.5 });
+    
+    tl.set('.exec-dimension-geo', { visibility: 'visible' })
+      .to('.exec-dimension-geo', { opacity: 1, duration: 1 })
+      .to({}, { duration: 1.5 });
+    
+    tl.add(() => {
+      setPhase('summary');
+      setStatus('COMPLETE');
+    })
+      .set('.exec-menu-section', { visibility: 'visible' })
+      .to('.exec-menu-section', { opacity: 1, duration: 0.8 })
+      .add(() => setExecShowMenu(true));
+    
+    tl.play();
+  }, [smoothExecAutoScroll]);
 
   const startAnimation = useCallback(() => {
     if (!timelineRef.current) return;
@@ -465,9 +630,10 @@ function App() {
   // Update scroll progress and detect user scrolling
   useEffect(() => {
     const updateScrollProgress = () => {
-      if (dataPageRef.current) {
-        const scrollTop = dataPageRef.current.scrollTop;
-        const scrollHeight = dataPageRef.current.scrollHeight - dataPageRef.current.clientHeight;
+      const activeContainer = isExecutiveMode ? execPageRef.current : dataPageRef.current;
+      if (activeContainer) {
+        const scrollTop = activeContainer.scrollTop;
+        const scrollHeight = activeContainer.scrollHeight - activeContainer.clientHeight;
         setScrollProgress(scrollHeight > 0 ? scrollTop / scrollHeight : 0);
       }
     };
@@ -482,21 +648,29 @@ function App() {
     };
 
     const dataPage = dataPageRef.current;
+    const execPage = execPageRef.current;
+    
     if (dataPage) {
       dataPage.addEventListener('scroll', updateScrollProgress);
       dataPage.addEventListener('wheel', handleWheel, { passive: true });
       dataPage.addEventListener('touchmove', handleWheel, { passive: true });
+    }
+    
+    if (execPage) {
+      execPage.addEventListener('scroll', updateScrollProgress);
+      execPage.addEventListener('wheel', handleWheel, { passive: true });
+      execPage.addEventListener('touchmove', handleWheel, { passive: true });
+    }
       
-      // Also update on animation frame for smooth updates during GSAP scrollTo
-      const rafUpdate = () => {
-        updateScrollProgress();
-        if (phase !== 'idle' && phase !== 'auth') {
-          requestAnimationFrame(rafUpdate);
-        }
-      };
+    // Also update on animation frame for smooth updates during GSAP scrollTo
+    const rafUpdate = () => {
+      updateScrollProgress();
       if (phase !== 'idle' && phase !== 'auth') {
         requestAnimationFrame(rafUpdate);
       }
+    };
+    if (phase !== 'idle' && phase !== 'auth') {
+      requestAnimationFrame(rafUpdate);
     }
 
     return () => {
@@ -505,18 +679,31 @@ function App() {
         dataPage.removeEventListener('wheel', handleWheel);
         dataPage.removeEventListener('touchmove', handleWheel);
       }
+      if (execPage) {
+        execPage.removeEventListener('scroll', updateScrollProgress);
+        execPage.removeEventListener('wheel', handleWheel);
+        execPage.removeEventListener('touchmove', handleWheel);
+      }
     };
-  }, [phase]);
+  }, [phase, isExecutiveMode]);
 
   // Handle keyboard events
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (phase === 'idle' && (e.key === 'Enter' || e.key === ' ')) {
-        startAnimation();
+      if (phase === 'idle') {
+        if (e.key === 'Enter' || e.key === ' ') {
+          startAnimation();
+        } else if (e.key === 'e' || e.key === 'E') {
+          startExecutiveAnimation();
+        }
       } else if (phase === 'summary') {
         if (e.key === 'r' || e.key === 'R') {
-          replayAnimation();
-        } else if (e.key === 'Escape') {
+          if (isExecutiveMode) {
+            replayExecAnimation();
+          } else {
+            replayAnimation();
+          }
+        } else if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
           resetToIdle();
         }
       }
@@ -524,7 +711,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [phase, startAnimation, replayAnimation, resetToIdle]);
+  }, [phase, isExecutiveMode, startAnimation, startExecutiveAnimation, replayAnimation, replayExecAnimation, resetToIdle]);
 
   const showScrollbar = phase !== 'idle' && phase !== 'auth';
 
@@ -536,8 +723,12 @@ function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
-      <WindowChrome username={displayUser} />
-      <IdlePage ref={idlePageRef} cursorRef={cursorRef} />
+      <WindowChrome username={isExecutiveMode ? 'executive' : displayUser} />
+      <IdlePage 
+        ref={idlePageRef} 
+        cursorRef={cursorRef} 
+        onExecutiveMode={startExecutiveAnimation}
+      />
       <AuthPage 
         ref={authPageRef} 
         username={mockReviewData.user.username}
@@ -558,6 +749,12 @@ function App() {
         flowStats={flowStats}
         showMenu={showMenu}
         onReplay={replayAnimation}
+      />
+      <ExecutiveDataPage
+        ref={execPageRef}
+        showMenu={execShowMenu}
+        onReplay={replayExecAnimation}
+        onBack={resetToIdle}
       />
 
       {showScrollbar && <ASCIIScrollbar scrollProgress={scrollProgress} />}
