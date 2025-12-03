@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
 import { useTheme } from './hooks/useTheme';
 import { useAuthFlow } from './hooks/useAuthFlow';
 import { StatusBar } from './components/StatusBar';
@@ -18,7 +19,7 @@ import { StackAdapter } from './adapters/StackAdapter';
 import { FlowAdapter } from './adapters/FlowAdapter';
 import type { AnimationPhase, TerminalStatus } from './types';
 
-gsap.registerPlugin(TextPlugin, ScrollToPlugin);
+gsap.registerPlugin(TextPlugin, ScrollTrigger);
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -40,6 +41,11 @@ function App() {
   const cursorRef = useRef<HTMLSpanElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const userScrollingRef = useRef(false);
+  const lenisRef = useRef<Lenis | null>(null);
+  const lenisTickerRef = useRef<((time: number) => void) | null>(null);
+  const lenisUpdateHandlerRef = useRef<((instance: Lenis) => void) | null>(null);
+  const lenisProgressHandlerRef = useRef<((instance: Lenis) => void) | null>(null);
+  const execTriggersRef = useRef<ScrollTrigger[]>([]);
 
   // Prepare data
   const gitChart = GitAdapter.toCommitChart(mockReviewData.git);
@@ -93,40 +99,99 @@ function App() {
     }
   }, []);
 
-  // Smooth auto-scroll helper for executive page
-  const smoothExecAutoScroll = useCallback(() => {
-    if (!execPageRef.current || userScrollingRef.current) return;
-    
-    const container = execPageRef.current;
-    const modules = container.querySelectorAll<HTMLElement>('.exec-header, .exec-basics, .exec-delivery, .exec-quality, .exec-cost, .exec-summary');
-    
-    let lastVisibleModule: HTMLElement | null = null;
-    modules.forEach(module => {
-      const style = window.getComputedStyle(module);
-      const opacity = parseFloat(style.opacity);
-      const visibility = style.visibility;
-      
-      if (opacity > 0 && visibility === 'visible') {
-        lastVisibleModule = module;
+  const teardownExecutiveScroll = useCallback(() => {
+    execTriggersRef.current.forEach(trigger => trigger.kill());
+    execTriggersRef.current = [];
+
+    if (lenisRef.current) {
+      if (lenisUpdateHandlerRef.current) {
+        lenisRef.current.off('scroll', lenisUpdateHandlerRef.current);
       }
-    });
-    
-    if (!lastVisibleModule) return;
-    
-    const moduleRect = (lastVisibleModule as HTMLElement).getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const moduleBottomRelativeToContainer = moduleRect.bottom - containerRect.top + container.scrollTop;
-    const targetScroll = moduleBottomRelativeToContainer - container.clientHeight + 80;
-    
-    if (targetScroll > container.scrollTop) {
-      gsap.to(container, {
-        scrollTop: Math.max(0, targetScroll),
-        duration: 0.6,
-        ease: 'power1.out',
-        overwrite: false
-      });
+      if (lenisProgressHandlerRef.current) {
+        lenisRef.current.off('scroll', lenisProgressHandlerRef.current);
+      }
+      lenisRef.current.destroy();
+      lenisRef.current = null;
+    }
+
+    if (lenisTickerRef.current) {
+      gsap.ticker.remove(lenisTickerRef.current);
+      lenisTickerRef.current = null;
     }
   }, []);
+
+  const setupExecutiveScroll = useCallback(() => {
+    const container = execPageRef.current;
+    const content = container?.querySelector<HTMLElement>('.exec-scroll-content');
+    if (!container) return;
+
+    teardownExecutiveScroll();
+    setExecShowMenu(false);
+    setPhase('git');
+    setStatus('BUILDING...');
+    setScrollProgress(0);
+
+    const modules = container.querySelectorAll<HTMLElement>('.exec-module');
+    gsap.set(modules, { opacity: 1, y: 0, visibility: 'visible' });
+
+    const sections = container.querySelectorAll<HTMLElement>('.exec-header, .exec-dimension-header, .exec-section, .exec-menu-section');
+    sections.forEach(section => {
+      gsap.set(section, { opacity: 0, y: 24, visibility: 'hidden' });
+    });
+
+    const lenis = new Lenis({
+      wrapper: container,
+      content: content || container,
+      autoRaf: false
+    });
+    lenisRef.current = lenis;
+
+    const onScrollUpdate = () => ScrollTrigger.update();
+    const onProgressUpdate = (instance: Lenis) => setScrollProgress(instance.progress ?? 0);
+
+    lenisUpdateHandlerRef.current = onScrollUpdate;
+    lenisProgressHandlerRef.current = onProgressUpdate;
+
+    lenis.on('scroll', onScrollUpdate);
+    lenis.on('scroll', onProgressUpdate);
+
+    const ticker = (time: number) => lenis.raf(time * 1000);
+    lenisTickerRef.current = ticker;
+    gsap.ticker.add(ticker);
+    gsap.ticker.lagSmoothing(0);
+
+    lenis.scrollTo(0, { immediate: true });
+
+    const registerTrigger = (element: HTMLElement) => {
+      const isMenu = element.classList.contains('exec-menu-section');
+      const trigger = ScrollTrigger.create({
+        trigger: element,
+        scroller: container,
+        start: isMenu ? 'top 95%' : 'top 75%',
+        onEnter: () => {
+          gsap.to(element, { opacity: 1, y: 0, visibility: 'visible', duration: 1.8, ease: 'power2.out', overwrite: 'auto' });
+          if (isMenu) {
+            setExecShowMenu(true);
+            setPhase('summary');
+            setStatus('COMPLETE');
+          }
+        },
+        onLeaveBack: () => {
+          gsap.to(element, { opacity: 0, y: 16, visibility: 'hidden', duration: 0.7, ease: 'power1.out', overwrite: 'auto' });
+          if (isMenu) {
+            setExecShowMenu(false);
+            setPhase('git');
+            setStatus('BUILDING...');
+          }
+        }
+      });
+
+      execTriggersRef.current.push(trigger);
+    };
+
+    Array.from(sections).forEach(registerTrigger);
+    ScrollTrigger.refresh();
+  }, [teardownExecutiveScroll]);
 
   const replayAnimation = useCallback(() => {
     if (timelineRef.current && dataPageRef.current) {
@@ -348,6 +413,7 @@ function App() {
     if (timelineRef.current) {
       timelineRef.current.pause(0);
     }
+    teardownExecutiveScroll();
     setPhase('idle');
     setStatus('IDLE');
     setShowMenu(false);
@@ -365,20 +431,16 @@ function App() {
     if (idlePageRef.current) {
       gsap.set(idlePageRef.current, { display: 'flex', opacity: 1 });
     }
-  }, [resetAuth]);
+  }, [resetAuth, teardownExecutiveScroll]);
 
   // Executive mode animation
   const startExecutiveAnimation = useCallback(() => {
-    if (!timelineRef.current) return;
-    
     setIsExecutiveMode(true);
-    setPhase('git'); // Reuse phase for animation tracking
+    setPhase('git');
     setStatus('BUILDING...');
     setExecShowMenu(false);
     
-    const tl = gsap.timeline({
-      onUpdate: smoothExecAutoScroll
-    });
+    const tl = gsap.timeline();
     timelineRef.current = tl;
     
     // Hide idle page
@@ -389,48 +451,16 @@ function App() {
     
     // Show executive page
     if (execPageRef.current) {
-      tl.set(execPageRef.current, { display: 'block' });
+      tl.set(execPageRef.current, { display: 'block', opacity: 0 });
       execPageRef.current.scrollTop = 0;
       userScrollingRef.current = false;
+      tl.to(execPageRef.current, { opacity: 1, duration: 0.4 });
     }
     
-    // Reset all modules to hidden
-    gsap.set(['.exec-header', '.exec-dimension-dept', '.exec-dimension-vendor', '.exec-dimension-geo', '.exec-menu-section'], {
-      opacity: 0,
-      visibility: 'hidden'
-    });
-    
-    // Animate header
-    tl.set('.exec-header', { visibility: 'visible' })
-      .to('.exec-header', { opacity: 1, duration: 0.8 })
-      .to({}, { duration: 1 });
-    
-    // Animate Department dimension
-    tl.set('.exec-dimension-dept', { visibility: 'visible' })
-      .to('.exec-dimension-dept', { opacity: 1, duration: 1 })
-      .to({}, { duration: 1.5 });
-    
-    // Animate Vendor dimension
-    tl.set('.exec-dimension-vendor', { visibility: 'visible' })
-      .to('.exec-dimension-vendor', { opacity: 1, duration: 1 })
-      .to({}, { duration: 1.5 });
-    
-    // Animate Geographic dimension
-    tl.set('.exec-dimension-geo', { visibility: 'visible' })
-      .to('.exec-dimension-geo', { opacity: 1, duration: 1 })
-      .to({}, { duration: 1.5 });
-    
-    // Show menu at end
-    tl.add(() => {
-      setPhase('summary');
-      setStatus('COMPLETE');
-    })
-      .set('.exec-menu-section', { visibility: 'visible' })
-      .to('.exec-menu-section', { opacity: 1, duration: 0.8 })
-      .add(() => setExecShowMenu(true));
-    
+    tl.add(() => setupExecutiveScroll());
+
     tl.play();
-  }, [smoothExecAutoScroll]);
+  }, [setupExecutiveScroll]);
 
   const replayExecAnimation = useCallback(() => {
     if (execPageRef.current) {
@@ -441,44 +471,8 @@ function App() {
     setStatus('BUILDING...');
     setExecShowMenu(false);
     
-    // Reset all modules
-    gsap.set(['.exec-header', '.exec-dimension-dept', '.exec-dimension-vendor', '.exec-dimension-geo', '.exec-menu-section'], {
-      opacity: 0,
-      visibility: 'hidden'
-    });
-    
-    const tl = gsap.timeline({
-      onUpdate: smoothExecAutoScroll
-    });
-    timelineRef.current = tl;
-    
-    // Replay animation sequence
-    tl.set('.exec-header', { visibility: 'visible' })
-      .to('.exec-header', { opacity: 1, duration: 0.8 })
-      .to({}, { duration: 1 });
-    
-    tl.set('.exec-dimension-dept', { visibility: 'visible' })
-      .to('.exec-dimension-dept', { opacity: 1, duration: 1 })
-      .to({}, { duration: 1.5 });
-    
-    tl.set('.exec-dimension-vendor', { visibility: 'visible' })
-      .to('.exec-dimension-vendor', { opacity: 1, duration: 1 })
-      .to({}, { duration: 1.5 });
-    
-    tl.set('.exec-dimension-geo', { visibility: 'visible' })
-      .to('.exec-dimension-geo', { opacity: 1, duration: 1 })
-      .to({}, { duration: 1.5 });
-    
-    tl.add(() => {
-      setPhase('summary');
-      setStatus('COMPLETE');
-    })
-      .set('.exec-menu-section', { visibility: 'visible' })
-      .to('.exec-menu-section', { opacity: 1, duration: 0.8 })
-      .add(() => setExecShowMenu(true));
-    
-    tl.play();
-  }, [smoothExecAutoScroll]);
+    setupExecutiveScroll();
+  }, [setupExecutiveScroll]);
 
   const startAnimation = useCallback(() => {
     if (!timelineRef.current) return;
@@ -623,13 +617,20 @@ function App() {
     }
 
     return () => {
+      teardownExecutiveScroll();
       mainTl.kill();
     };
-  }, []);
+  }, [teardownExecutiveScroll]);
 
   // Update scroll progress and detect user scrolling
   useEffect(() => {
     const updateScrollProgress = () => {
+      if (isExecutiveMode && lenisRef.current) {
+        const progress = lenisRef.current.progress ?? 0;
+        setScrollProgress(progress);
+        return;
+      }
+
       const activeContainer = isExecutiveMode ? execPageRef.current : dataPageRef.current;
       if (activeContainer) {
         const scrollTop = activeContainer.scrollTop;
@@ -656,7 +657,7 @@ function App() {
       dataPage.addEventListener('touchmove', handleWheel, { passive: true });
     }
     
-    if (execPage) {
+    if (execPage && !lenisRef.current) {
       execPage.addEventListener('scroll', updateScrollProgress);
       execPage.addEventListener('wheel', handleWheel, { passive: true });
       execPage.addEventListener('touchmove', handleWheel, { passive: true });
@@ -679,7 +680,7 @@ function App() {
         dataPage.removeEventListener('wheel', handleWheel);
         dataPage.removeEventListener('touchmove', handleWheel);
       }
-      if (execPage) {
+      if (execPage && !lenisRef.current) {
         execPage.removeEventListener('scroll', updateScrollProgress);
         execPage.removeEventListener('wheel', handleWheel);
         execPage.removeEventListener('touchmove', handleWheel);
