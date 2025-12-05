@@ -100,7 +100,6 @@ export const WindowChrome = ({ username }: WindowChromeProps) => {
         style={{ 
           color: 'var(--text-secondary)',
           fontSize: '13px',
-          fontFamily: 'monospace',
           userSelect: 'none'
         }}
       >

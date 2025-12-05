@@ -1,22 +1,25 @@
-import { Heart, Sun, Moon } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import type { TerminalStatus } from '../types';
-import type { Theme } from '../hooks/useTheme';
 
 interface StatusBarProps {
   status: TerminalStatus;
-  theme: Theme;
-  onToggleTheme: () => void;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ status, theme, onToggleTheme }) => {
+export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
   const getStatusStyle = () => {
     switch (status) {
-      case 'IDLE':
+      case 'READY':
         return { color: 'var(--text-dim)' };
-      case 'BUILDING...':
+      case 'AUTHORIZING...':
+        return { color: 'var(--accent-info)', fontWeight: 'bold' };
+      case 'LOADING...':
+        return { color: 'var(--accent-warning)', fontWeight: 'bold' };
+      case 'PROCESSING...':
         return { color: 'var(--accent-info)', fontWeight: 'bold' };
       case 'COMPLETE':
         return { color: 'var(--accent-success)', fontWeight: 'bold' };
+      case 'ERROR':
+        return { color: 'var(--accent-error)', fontWeight: 'bold' };
       default:
         return { color: 'var(--text-primary)' };
     }
@@ -42,24 +45,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, theme, onToggleThe
       
       <div className="flex items-center gap-6">
         <span 
-          className={status === 'BUILDING...' ? 'animate-pulse' : ''}
+          className={status === 'AUTHORIZING...' || status === 'LOADING...' || status === 'PROCESSING...' ? 'animate-pulse' : ''}
           style={getStatusStyle()}
         >
           {status}
         </span>
-        <button
-          onClick={onToggleTheme}
-          className="hover:opacity-80 transition-opacity flex items-center gap-2"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          <span className="flex items-center gap-1" style={{ opacity: theme === 'light' ? 1 : 0.5 }}>
-            <Sun size={14} /> Light
-          </span>
-          <span style={{ color: 'var(--text-dim)' }}>/</span>
-          <span className="flex items-center gap-1" style={{ opacity: theme === 'dark' ? 1 : 0.5 }}>
-            <Moon size={14} /> Dark
-          </span>
-        </button>
       </div>
     </div>
   );

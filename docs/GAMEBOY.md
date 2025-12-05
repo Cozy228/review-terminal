@@ -1,5 +1,26 @@
 # DataPage 复古游戏风格重设计方案
 
+### 高清伪装（High-Fidelity Fake）总则
+目标：用现代 CSS/Flex/Grid **伪装** 成字符终端，获得像素/终端视觉但保持排版稳固、高清锐利（无 CRT 模糊）。
+
+#### 视觉约束 / 硬规则
+- **块状度量衡**：所有 `margin/padding/width/height/gap` 必须是同一 Base Unit 的整数倍（建议 `--unit: 0.5rem` 或 `8px`）。禁止 3px 等非整倍数与 sub-pixel 值。
+- **字体与抗锯齿**：使用点阵/等宽字体（如 `Press Start 2P`、`VT323`、`JetBrains Mono`），并强制 `-webkit-font-smoothing: none;`、`image-rendering: pixelated;`。保持锐利边缘。
+- **边框伪字符化**：只用直角；禁用 `border-radius`。边框宽度 2–4px；优先 `border-style: double` 或 solid 粗线模拟 `╔═╗`/`█`/`║`，完全不用真正 ASCII 拼接。
+- **动画顿挫感**：长度/颜色/位置动画一律用 `steps()`（例如 `steps(12)`），禁止默认 `ease`/`ease-in-out` 的平滑过渡。
+- **纹理与配色一致性**：空槽/背景可用 `░` 纹理或重复像素背景；填充用 `█` 或重复块纹理。全局遵守 NES/终端色板，禁用模糊滤镜、禁用阴影柔化。
+
+#### 动态表现
+- **Decryption Effect（乱码解锁）**：核心大数字（commits、LOC 等）显示时，先用等长随机 hex/符号高速抖动，再从左到右逐位锁定真实值（< 0.6s 完成），只用于关键数据避免审美疲劳。
+- **文本化图表**：图表全部由字符构成，禁止 Canvas/SVG 曲线饼图。Sparklines 用 `▂▃▄▅▆▇█`；热力图用 `· : + # @`；柱状/条形优先 ASCII 块（`█`/`░`）或纯字符串。
+- **进度条纹理**：空槽用 `░░░░`，填充用 `████`，外框 2–4px 双线/粗线；填充动画用 `steps()` 阶梯式推进。
+- **轻度 Glitch**：用于强调异常（如 Bugs Fixed），短时 `translate/skew` 抖动 + 闪红，高频率限制，避免影响可读性。
+- **“不完美加载”**：在数据到达前展示原始/乱码占位，而非精美 spinner；完成后锁定真实值。
+
+#### 技术落地与 Do/Don't
+- **Do**：React + CSS/Flex/Grid + GSAP（仅用时间线与 `steps()`）；布局以 CSS 边框伪装 ASCII；字号/行高/间距全走 Base Unit；字符图表直接字符串或伪元素。
+- **Don't**：不要 CRT/模糊滤镜；不要圆角；不要 sub-pixel/奇数像素微调；不要 Canvas/SVG 图表；不要平滑补间。
+
 ## 目标
 将 DataPage 重塑为复古游戏视觉风格的年度回顾体验：
 - 保留游戏美学（像素边框、进度条、成就解锁）

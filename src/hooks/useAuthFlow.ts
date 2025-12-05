@@ -98,7 +98,6 @@ export function useAuthFlow({ onSuccess }: UseAuthFlowOptions) {
   // Listen for messages from callback page
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log('Main window received message:', event.data, 'from origin:', event.origin);
       
       // Verify origin matches our window origin
       if (event.origin !== window.location.origin) {

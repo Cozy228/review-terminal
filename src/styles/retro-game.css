@@ -1,0 +1,356 @@
+:root {
+  --retro-bg: #0f0f23;
+  --retro-panel: #0c1124;
+  --retro-surface: #0a0e1f;
+  --retro-border: #2f364a;
+  --retro-border-strong: #4b5563;
+  --retro-primary: #00ff41;
+  --retro-gold: #facc15;
+  --retro-blue: #3b82f6;
+  --retro-red: #ef4444;
+  --retro-dim: #6b7280;
+  --retro-rare: #3b82f6;
+  --retro-epic: #a855f7;
+  --retro-legendary: #f97316;
+}
+
+.retro-shell {
+  width: 1280px;
+  max-width: calc(100vw - 64px);
+  margin: 0 auto;
+  padding: calc(var(--unit) * 4);
+  background: var(--retro-bg);
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  position: relative;
+}
+
+.retro-shell * {
+  border-radius: 0 !important;
+}
+
+.scanline {
+  background-color: transparent;
+}
+
+.scanline::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 50%
+  );
+  background-size: 100% 4px;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  width: 100vw;
+  height: 100vh;
+}
+
+.command-line {
+  font-size: 0.95rem;
+  color: var(--retro-primary);
+  letter-spacing: 0.08em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.command-caret {
+  width: 10px;
+  height: 16px;
+  background: var(--retro-primary);
+  animation: blink 1s steps(2, end) infinite;
+}
+
+.command-line[data-active="false"] .command-caret {
+  animation: none;
+  opacity: 1;
+}
+
+.retro-section {
+  position: relative;
+  border: 4px double var(--retro-border);
+  padding: calc(var(--unit) * 3);
+  margin-bottom: calc(var(--unit) * 4);
+  background: var(--retro-panel);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.section-title {
+  position: absolute;
+  top: -14px;
+  left: 18px;
+  padding: 4px 10px;
+  background: var(--retro-panel);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.retro-card {
+  position: relative;
+  border: 3px double var(--retro-border-strong);
+  padding: calc(var(--unit) * 2);
+  background: var(--retro-surface);
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.retro-card-title {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+}
+
+.retro-card-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.retro-card-note {
+  font-size: 0.9rem;
+  color: var(--retro-dim);
+  min-height: 20px;
+}
+
+.retro-card.is-green .retro-card-value {
+  color: var(--retro-primary);
+}
+
+.retro-card.is-gold .retro-card-value {
+  color: var(--retro-gold);
+}
+
+.retro-card.is-blue .retro-card-value {
+  color: var(--retro-blue);
+}
+
+.retro-card.is-red .retro-card-value {
+  color: var(--retro-red);
+}
+
+.data-grid {
+  display: grid;
+  gap: calc(var(--unit) * 2);
+}
+
+.grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ascii-plot {
+  color: var(--text-secondary);
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+}
+
+.pixel-bar {
+  position: relative;
+  width: 100%;
+  border: 2px solid var(--retro-border-strong);
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.05) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  height: 20px;
+}
+
+.pixel-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--retro-primary);
+  transition: width 1s steps(16);
+}
+
+.pixel-bar-fill.gold {
+  background: var(--retro-gold);
+}
+
+.pixel-bar-fill.blue {
+  background: var(--retro-blue);
+}
+
+.pixel-bar-fill.red {
+  background: var(--retro-red);
+}
+
+.pixel-bar-fill.purple {
+  background: var(--retro-epic);
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) 80px;
+  align-items: center;
+  gap: calc(var(--unit) * 1);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.stat-row .label {
+  color: var(--text-secondary);
+}
+
+.stat-row .value {
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 2px solid var(--retro-border-strong);
+  background: var(--retro-surface);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--unit) * 2);
+}
+
+.achievement-card {
+  border: 3px double var(--retro-border-strong);
+  padding: calc(var(--unit) * 2);
+  background: var(--retro-surface);
+  color: var(--text-secondary);
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+
+.achievement-card .name {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.achievement-card .rarity {
+  font-size: 0.85rem;
+}
+
+.achievement-card.legendary {
+  border-color: var(--retro-legendary);
+  color: var(--retro-legendary);
+}
+
+.achievement-card.epic {
+  border-color: var(--retro-epic);
+  color: var(--retro-epic);
+}
+
+.achievement-card.rare {
+  border-color: var(--retro-rare);
+  color: var(--retro-rare);
+}
+
+.achievement-card.common {
+  border-color: var(--retro-border-strong);
+  color: var(--text-secondary);
+}
+
+.summary-score {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto;
+  border: 4px double var(--retro-border-strong);
+  display: grid;
+  place-items: center;
+  font-size: 2.2rem;
+  color: var(--retro-gold);
+}
+
+.menu-line {
+  display: flex;
+  justify-content: center;
+  gap: calc(var(--unit) * 2);
+  padding: calc(var(--unit) * 1.5);
+  border: 2px solid var(--retro-border-strong);
+  color: var(--text-secondary);
+}
+
+.menu-line span {
+  cursor: pointer;
+}
+
+
+.spark {
+  color: var(--retro-primary);
+}
+
+.tone-gold {
+  color: var(--retro-gold);
+}
+
+.tone-green {
+  color: var(--retro-primary);
+}
+
+.tone-blue {
+  color: var(--retro-blue);
+}
+
+.tone-red {
+  color: var(--retro-red);
+}
+
+.tone-purple {
+  color: var(--retro-epic);
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Monthly Chart Colors (GitHub-style contribution grid) */
+.chart-block {
+  display: inline;
+}
+
+.chart-block.c0 {
+  color: var(--retro-border);
+  opacity: 0.3;
+}
+
+.chart-block.c1 {
+  color: var(--retro-primary);
+  opacity: 0.4;
+}
+
+.chart-block.c2 {
+  color: var(--retro-primary);
+  opacity: 0.6;
+}
+
+.chart-block.c3 {
+  color: var(--retro-primary);
+  opacity: 0.8;
+}
+
+.chart-block.c4 {
+  color: var(--retro-primary);
+  opacity: 1;
+}
+
+.chart-label {
+  color: var(--text-dim);
+}

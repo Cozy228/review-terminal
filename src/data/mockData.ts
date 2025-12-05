@@ -3,9 +3,12 @@ import type { ReviewData } from '../types';
 export const mockReviewData: ReviewData = {
   user: {
     username: 'ziyu123213',
-    role: 'Developer',
+    role: 'Senior Frontend Developer',
     joinDate: '2020-01-15',
-    location: 'Earth',
+    location: 'Beijing, China',
+    avatar: 'https://avatars.githubusercontent.com/u/1234567?v=4',
+    department: 'Engineering',
+    team: 'Developer Experience',
   },
   git: {
     commits: [
@@ -29,6 +32,19 @@ export const mockReviewData: ReviewData = {
     peakCommits: 84,
     longestStreak: 47,
     streakPeriod: 'Mar 15 - May 1',
+    pullRequests: {
+      opened: 186,
+      merged: 172,
+      reviewed: 203,
+      avgReviewTime: '4.2 hours',
+    },
+    collaborators: [
+      { username: 'akiko', prsTogether: 38, reviewsExchanged: 41, avatar: 'https://i.pravatar.cc/120?img=15' },
+      { username: 'marco', prsTogether: 44, reviewsExchanged: 36, avatar: 'https://i.pravatar.cc/120?img=12' },
+      { username: 'devon', prsTogether: 29, reviewsExchanged: 52 },
+      { username: 'liwei', prsTogether: 33, reviewsExchanged: 28, avatar: 'https://i.pravatar.cc/120?img=25' },
+      { username: 'samira', prsTogether: 26, reviewsExchanged: 31, avatar: 'https://i.pravatar.cc/120?img=30' },
+    ],
   },
   techStack: {
     languages: [
@@ -54,5 +70,82 @@ export const mockReviewData: ReviewData = {
     },
     totalTickets: 384,
     completionRate: 81.2,
+  },
+  cicd: {
+    builds: {
+      total: 410,
+      successful: 388,
+      failed: 22,
+    },
+    deployments: {
+      total: 96,
+      production: 38,
+      staging: 58,
+    },
+    avgBuildTime: '3m 24s',
+    pipelinesConfigured: 12,
+  },
+  jira: {
+    tickets: {
+      total: 214,
+      completed: 176,
+      inProgress: 28,
+    },
+    storiesCompleted: 142,
+    bugsFixed: 61,
+    avgCycleTime: '2.3 days',
+    epicsContributed: 7,
+    topProjects: ['Nebula Platform', 'Orion Admin', 'Pulse Metrics'],
+  },
+  copilot: {
+    acceptanceRate: 62,
+    suggestionsAccepted: 8341,
+    linesGenerated: 54821,
+    activeDays: 211,
+    chatSessions: 126,
+    timesSaved: '~47 hours',
+  },
+  learning: {
+    coursesCompleted: 9,
+    certificationsEarned: 2,
+    skills: [
+      { name: 'React', level: 'expert' },
+      { name: 'TypeScript', level: 'expert' },
+      { name: 'Data Visualization', level: 'advanced' },
+      { name: 'DevOps', level: 'intermediate' },
+      { name: 'Machine Learning', level: 'beginner' },
+      { name: 'Product Thinking', level: 'advanced' },
+    ],
+    hoursLearning: 186,
+  },
+  community: {
+    bravosReceived: 34,
+    bravosGiven: 48,
+    activities: [
+      { type: 'tech-talk', name: 'Design Systems at Scale', date: '2025-03-12' },
+      { type: 'hackathon', name: 'AI DevTools Sprint', date: '2025-06-04' },
+      { type: 'session', name: 'Frontend Performance Clinic', date: '2025-08-19' },
+      { type: 'tech-talk', name: 'Real-time Dashboards', date: '2025-10-07' },
+    ],
+  },
+  summary: {
+    highlights: [
+      'Delivered 38 production deployments with 94.6% success rate',
+      'Merged 172 PRs with average review time under 5 hours',
+      'Closed 61 bugs and led 7 epics across top projects',
+      'Maintained 47-day commit streak and 62% Copilot acceptance',
+    ],
+    narrative:
+      'Consistent momentum across delivery and code quality, with strong collaboration shown through peer reviews and shared PRs. Growing DevOps ownership by tuning pipelines and keeping build times low while balancing learning in AI and product thinking.',
+    badges: [
+      { id: 'commit-champion', name: 'Commit Champion', icon: '🏆', description: '2000+ commits in a year', rarity: 'legendary' },
+      { id: 'pr-velocity', name: 'PR Velocity', icon: '⚡', description: 'Merged 100+ PRs', rarity: 'epic' },
+      { id: 'bug-squasher', name: 'Bug Squasher', icon: '🐛', description: 'Fixed 50+ bugs', rarity: 'rare' },
+      { id: 'team-player', name: 'Team Player', icon: '🤝', description: 'Collaborated with 20+ devs', rarity: 'epic' },
+      { id: 'early-bird', name: 'Early Bird', icon: '🌅', description: 'First commit of the year', rarity: 'common' },
+      { id: 'streak-master', name: 'Streak Master', icon: '🔥', description: '30+ day commit streak', rarity: 'rare' },
+    ],
+    overallScore: 92,
+    growthPercentage: 18,
   },
 };

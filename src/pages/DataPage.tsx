@@ -1,182 +1,332 @@
-import { forwardRef } from 'react';
-import { Check, TrendingUp, Flame, FileText, CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import { 
-  ASCII_GIT, 
-  ASCII_STACK, 
-  ASCII_FLOW, 
-  ASCII_2025,
-  ASCII_BADGE 
-} from '../constants/ascii-art';
-
-interface StatWithIcon {
-  icon: string;
-  color: string;
-  text: string;
-}
+import clsx from 'clsx';
+import { forwardRef, useMemo } from 'react';
+import { DataCardGroup, TerminalCommand, TypewriterText, DataCard } from '../components/retro';
+import { GitAdapter } from '../adapters/GitAdapter';
+import { StackAdapter } from '../adapters/StackAdapter';
+import { FlowAdapter } from '../adapters/FlowAdapter';
+import { CICDAdapter } from '../adapters/CICDAdapter';
+import { CopilotAdapter } from '../adapters/CopilotAdapter';
+import { LearningAdapter } from '../adapters/LearningAdapter';
+import { CommunityAdapter } from '../adapters/CommunityAdapter';
+import { generateProgressBar } from '../utils/ascii';
+import type { ReviewData } from '../types';
 
 interface DataPageProps {
-  username: string;
-  role: string;
-  gitChart: string;
-  gitStats: StatWithIcon[];
-  stackBars: string;
-  stackFrameworks: string;
-  flowHeatmap: string;
-  flowStats: StatWithIcon[];
+  reviewData: ReviewData;
+  displayUser: string;
   showMenu: boolean;
   onReplay: () => void;
 }
 
+interface Achievement {
+  name: string;
+  rarity: 'legendary' | 'epic' | 'rare' | 'common';
+  icon: string;
+  note: string;
+}
+
 export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
-  ({ username, role, gitChart, gitStats, stackBars, stackFrameworks, flowHeatmap, flowStats, showMenu, onReplay }, ref) => {
-    // Helper function to render icon based on name
-    const renderIcon = (iconName: string, color: string) => {
-      const iconProps = { size: 16, style: { color } };
-      switch (iconName) {
-        case 'TrendingUp': return <TrendingUp {...iconProps} />;
-        case 'Flame': return <Flame {...iconProps} />;
-        case 'FileText': return <FileText {...iconProps} />;
-        case 'CheckCircle2': return <CheckCircle2 {...iconProps} />;
-        case 'Loader2': return <Loader2 {...iconProps} />;
-        case 'XCircle': return <XCircle {...iconProps} />;
-        default: return null;
+  ({ reviewData, displayUser, showMenu, onReplay }, ref) => {
+    const { user, git, techStack, workflow, cicd, jira, copilot, learning, community, summary } = reviewData;
+
+    // Git data
+    const gitCards = useMemo(() => GitAdapter.toStatCards(git), [git]);
+    const monthlyChart = useMemo(() => GitAdapter.toMonthlyBlocks(git), [git]);
+    const gitNarrative = useMemo(() => GitAdapter.toNarrative(git), [git]);
+
+    // Tech stack data
+    const languageBars = useMemo(() => StackAdapter.toLanguageBars(techStack), [techStack]);
+    const frameworkBars = useMemo(() => StackAdapter.toFrameworkUsage(techStack), [techStack]);
+    const levelingUp = useMemo(() => StackAdapter.toLevelingUp(techStack, learning), [techStack, learning]);
+
+    // Workflow/Jira data (merged)
+    const deliveryStats = useMemo(() => FlowAdapter.toDeliveryStats(workflow, jira), [workflow, jira]);
+    const deliveryProjects = useMemo(() => FlowAdapter.toProjectProgress(workflow, jira), [workflow, jira]);
+
+    // CI/CD data
+    const cicdCards = useMemo(() => CICDAdapter.toStatCards(cicd), [cicd]);
+    const cicdNarrative = useMemo(() => CICDAdapter.toNarrative(cicd), [cicd]);
+    const buildSuccessBar = useMemo(() => CICDAdapter.toBuildSuccessBar(cicd), [cicd]);
+
+    // Copilot data
+    const copilotCards = useMemo(() => CopilotAdapter.toStatCards(copilot), [copilot]);
+    const copilotNarrative = useMemo(() => CopilotAdapter.toNarrative(copilot), [copilot]);
+    const copilotAcceptanceBar = useMemo(() => CopilotAdapter.toAcceptanceBar(copilot), [copilot]);
+
+    // Learning data
+    const learningCards = useMemo(() => LearningAdapter.toStatCards(learning), [learning]);
+    const learningNarrative = useMemo(() => LearningAdapter.toNarrative(learning), [learning]);
+
+    // Community data
+    const communityCards = useMemo(() => CommunityAdapter.toStatCards(community), [community]);
+    const communityActivities = useMemo(() => CommunityAdapter.toActivityList(community), [community]);
+    const communityNarrative = useMemo(() => CommunityAdapter.toNarrative(community), [community]);
+
+    const playerLevel = useMemo(() => {
+      const level = Math.min(99, Math.floor(git.totalCommits / 50));
+      const expPercent = Math.min(100, Math.round((git.totalCommits % 50) / 50 * 100));
+      return { level, expPercent };
+    }, [git.totalCommits]);
+
+    // Use real summary badges
+    const achievements: Achievement[] = useMemo(() =>
+      summary.badges.map(badge => ({
+        name: badge.name.toUpperCase(),
+        rarity: badge.rarity,
+        icon: badge.icon,
+        note: badge.description
+      })),
+      [summary.badges]
+    );
+
+    const rarityClass = (rarity: Achievement['rarity']) => {
+      switch (rarity) {
+        case 'legendary':
+          return 'legendary';
+        case 'epic':
+          return 'epic';
+        case 'rare':
+          return 'rare';
+        default:
+          return 'common';
       }
     };
 
     return (
-      <div 
+      <div
         ref={ref}
-        className="fixed inset-0 overflow-y-auto px-6 md:px-24 py-8 md:py-12"
-        style={{ display: 'none', paddingTop: '56px', paddingBottom: '4rem' }}
+        className="fixed inset-0 overflow-hidden data-scroll-wrapper"
+        style={{ display: 'none' }}
       >
-        {/* Welcome Header */}
-        <div className="session-header max-w-4xl mx-auto mb-16" style={{ opacity: 0, visibility: 'hidden' }}>
-          <div className="py-8" style={{ borderTop: '2px dashed var(--accent-success)', borderBottom: '2px dashed var(--accent-success)' }}>
-            <div className="text-center mb-4">
-              <div className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-success)' }}>
-                🎉 Welcome to Your 2025 Tech Annual Review
-              </div>
-              <div className="text-lg mb-3" style={{ color: 'var(--text-primary)' }}>
-                @{username} · {role}
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                A year of code, commits, and continuous growth
+        <div className="data-scroll-content retro-shell scanline" style={{ paddingTop: '48px', paddingBottom: '48px' }}>
+          {/* Player Status */}
+          <section className="retro-section player-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">PLAYER STATUS</div>
+            <TerminalCommand className="player-command mb-4" text="> initialize --player --status" />
+            <div className="data-grid grid-two player-cards">
+              <DataCard
+                title="LEVEL"
+                value={`LV.${playerLevel.level.toString().padStart(2, '0')} ${user.role.toUpperCase()}`}
+                note="Status: caffeinated & compiling"
+                tone="gold"
+                className="player-level-card"
+              />
+              <div className="retro-card is-green player-exp-card">
+                <div className="retro-card-title">EXP</div>
+                <div className="retro-card-note mono">[{generateProgressBar(playerLevel.expPercent, 26)}] {playerLevel.expPercent}%</div>
+                <div className="retro-card-note">User: @{displayUser} · Base: {user.location || 'Earth'}</div>
               </div>
             </div>
-          </div>
-          <div className="session-countdown mt-6 text-center" style={{ color: 'var(--text-dim)', opacity: 0 }}>
-            &gt; Compiling your achievements...
-          </div>
-        </div>
+          </section>
 
-        {/* Git Module */}
-        <div className="git-module max-w-4xl mx-auto mb-16" style={{ opacity: 0, visibility: 'hidden' }}>
-          <pre className="git-title mb-6" style={{ color: 'var(--accent-info)' }}>
-            {ASCII_GIT}
-          </pre>
-          <div className="flex items-center gap-4 mb-2">
-            <span className="git-log-0" style={{ color: 'var(--text-primary)' }}></span>
-            <Check className="git-check-0" size={16} style={{ opacity: 0, color: 'var(--accent-success)' }} />
-          </div>
-          <div className="flex items-center gap-4 mb-6">
-            <span className="git-log-1" style={{ color: 'var(--text-primary)' }}></span>
-            <Check className="git-check-1" size={16} style={{ opacity: 0, color: 'var(--accent-success)' }} />
-          </div>
-          <pre className="git-chart mb-6" style={{ color: 'var(--text-secondary)' }}>
-            {gitChart}
-          </pre>
-          <div className="git-stats space-y-2">
-            {gitStats.map((stat, i) => (
-              <div key={i} className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                {renderIcon(stat.icon, stat.color)}
-                <span>{stat.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stack Module */}
-        <div className="stack-module max-w-4xl mx-auto mb-16" style={{ opacity: 0, visibility: 'hidden' }}>
-          <pre className="stack-title mb-6" style={{ color: 'var(--accent-success)' }}>
-            {ASCII_STACK}
-          </pre>
-          <div className="flex items-center gap-4 mb-2">
-            <span className="stack-log-0" style={{ color: 'var(--text-primary)' }}></span>
-            <Check className="stack-check-0" size={16} style={{ opacity: 0, color: 'var(--accent-success)' }} />
-          </div>
-          <div className="flex items-center gap-4 mb-6">
-            <span className="stack-log-1" style={{ color: 'var(--text-primary)' }}></span>
-            <Check className="stack-check-1" size={16} style={{ opacity: 0, color: 'var(--accent-success)' }} />
-          </div>
-          <pre className="stack-bars mb-6" style={{ color: 'var(--text-secondary)' }}>
-            {stackBars}
-          </pre>
-          <pre className="stack-frameworks" style={{ color: 'var(--text-secondary)' }}>
-            {stackFrameworks}
-          </pre>
-        </div>
-
-        {/* Flow Module */}
-        <div className="flow-module max-w-4xl mx-auto mb-16" style={{ opacity: 0, visibility: 'hidden' }}>
-          <pre className="flow-title mb-6" style={{ color: 'var(--accent-highlight)' }}>
-            {ASCII_FLOW}
-          </pre>
-          <div className="flex items-center gap-4 mb-2">
-            <span className="flow-log-0" style={{ color: 'var(--text-primary)' }}></span>
-            <Check className="flow-check-0" size={16} style={{ opacity: 0, color: 'var(--accent-success)' }} />
-          </div>
-          <div className="flex items-center gap-4 mb-6">
-            <span className="flow-log-1" style={{ color: 'var(--text-primary)' }}></span>
-            <Check className="flow-check-1" size={16} style={{ opacity: 0, color: 'var(--accent-success)' }} />
-          </div>
-          <pre className="flow-heatmap mb-6" style={{ color: 'var(--text-secondary)' }}>
-            {flowHeatmap}
-          </pre>
-          <div className="flow-stats space-y-2">
-            {flowStats.map((stat, i) => (
-              <div key={i} className="flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                {renderIcon(stat.icon, stat.color)}
-                <span>{stat.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Summary */}
-        <div className="summary-module max-w-4xl mx-auto flex flex-col items-center" style={{ opacity: 0, visibility: 'hidden' }}>
-          <pre className="summary-title mb-8" style={{ color: 'var(--accent-info)' }}>
-            {ASCII_2025}
-          </pre>
-          <pre className="summary-badge mb-8" style={{ color: 'var(--accent-highlight)' }}>
-            {ASCII_BADGE}
-          </pre>
-          <div className="summary-message w-full border-t border-b py-6 mb-8 text-center" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="text-xl font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              ✓ v2025 Final Build Complete
+          {/* Git Module */}
+          <section className="retro-section git-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">GIT BATTLE LOG</div>
+            <TerminalCommand className="git-command mb-4" text="> getdata --github --commits --prs" />
+            <DataCardGroup items={gitCards} className="git-cards mb-4" />
+            <div className="retro-card is-blue git-monthly-card">
+              <div className="retro-card-title">MONTHLY COMMITS</div>
+              <pre className="ascii-plot git-monthly-chart" dangerouslySetInnerHTML={{ __html: monthlyChart }}></pre>
+              <TypewriterText className="retro-card-note git-narrative" initialText={gitNarrative} />
             </div>
-            <div style={{ color: 'var(--text-secondary)' }}>
-              v2026.0.0 Initializing...
+          </section>
+
+          {/* Skills Module */}
+          <section className="retro-section skills-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">SKILL MATRIX</div>
+            <TerminalCommand className="skills-command mb-4" text="> analyze --languages --frameworks" />
+
+            <div className="retro-card is-green mb-4">
+              <div className="retro-card-title">LANGUAGES</div>
+              <div className="space-y-2 language-bars">
+                {languageBars.map((lang, index) => (
+                  <div key={lang.label + index} className="stat-row">
+                    <span className="label">{lang.label}</span>
+                    <span
+                      className={clsx('mono spark language-bar', lang.tone ? `tone-${lang.tone}` : null)}
+                      data-target={lang.percent}
+                      data-bar={lang.bar}
+                    >
+                      {lang.bar}
+                    </span>
+                    <span className="value">{lang.percent}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <div
-            className="summary-menu border rounded px-8 py-4"
-            style={{
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              opacity: showMenu ? 1 : 0,
-              pointerEvents: showMenu ? 'auto' : 'none',
-              visibility: showMenu ? 'visible' : 'hidden',
-            }}
-          >
-            <span className="cursor-pointer hover:text-info" onClick={onReplay}>[R]eplay</span>
-            <span className="mx-4">|</span>
-            <span className="cursor-pointer hover:text-info">[D]ownload PDF</span>
-            <span className="mx-4">|</span>
-            <span className="cursor-pointer hover:text-info">[S]hare to Engage</span>
-          </div>
-          <div className="mt-8" style={{ color: 'var(--text-dim)' }}>
-            &gt; <span className="animate-pulse">_</span>
-          </div>
+
+            <div className="retro-card is-blue mb-4">
+              <div className="retro-card-title">FRAMEWORKS</div>
+              <div className="space-y-2 framework-bars">
+                {frameworkBars.map((fw, index) => (
+                  <div key={fw.label + index} className="stat-row">
+                    <span className="label">{fw.label}</span>
+                    <span className="mono spark framework-bar" data-hours={fw.hours} data-bar={fw.bar}>{fw.bar}</span>
+                    <span className="value">{fw.hours.toLocaleString()}h</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="retro-card is-gold">
+              <div className="retro-card-title">LEVELING UP 🎮</div>
+              <div className="space-y-2 leveling-bars">
+                {levelingUp.map((skill, index) => (
+                  <div key={skill.label + index} className="stat-row">
+                    <span className="label">{skill.label}</span>
+                    <span
+                      className={clsx('mono spark level-bar', skill.tone ? `tone-${skill.tone}` : null)}
+                      data-level={skill.level}
+                      data-bar={skill.bar}
+                    >
+                      {skill.bar}
+                    </span>
+                    <span className="value">{skill.level}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Delivery Module */}
+          <section className="retro-section delivery-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">QUEST LOG</div>
+            <TerminalCommand className="delivery-command mb-4" text="> getdata --jira --stories --bugs" />
+            <DataCardGroup items={deliveryStats} className="delivery-cards mb-4" />
+
+            <div className="retro-card is-red">
+              <div className="retro-card-title">PROJECT PROGRESS</div>
+              <div className="space-y-2 delivery-projects">
+                {deliveryProjects.map((project, index) => (
+                  <div key={project.label + index} className="stat-row">
+                    <span className="label">{project.label}</span>
+                    <span className="mono spark project-bar" data-progress={project.percent} data-bar={project.bar}>
+                      {project.bar}
+                    </span>
+                    <span className="value">{project.percent}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* CI/CD Module */}
+          <section className="retro-section cicd-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">BUILD & DEPLOY</div>
+            <TerminalCommand className="cicd-command mb-4" text="> monitor --builds --deployments --pipelines" />
+            <DataCardGroup items={cicdCards} className="cicd-cards mb-4" />
+            <div className="retro-card is-green">
+              <div className="retro-card-title">BUILD SUCCESS RATE</div>
+              <div className="stat-row">
+                <span className="label">{buildSuccessBar.label}</span>
+                <span
+                  className={clsx('mono spark build-success-bar', buildSuccessBar.tone ? `tone-${buildSuccessBar.tone}` : null)}
+                  data-percent={buildSuccessBar.percent}
+                  data-bar={buildSuccessBar.bar}
+                >
+                  {buildSuccessBar.bar}
+                </span>
+                <span className="value">{buildSuccessBar.percent}%</span>
+              </div>
+              <TypewriterText className="retro-card-note cicd-narrative" initialText={cicdNarrative} />
+            </div>
+          </section>
+
+          {/* Copilot Module */}
+          <section className="retro-section copilot-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">AI ASSIST LOG</div>
+            <TerminalCommand className="copilot-command mb-4" text="> analyze --copilot --productivity" />
+            <DataCardGroup items={copilotCards} className="copilot-cards mb-4" />
+            <div className="retro-card is-purple">
+              <div className="retro-card-title">COPILOT PERFORMANCE</div>
+              <div className="stat-row">
+                <span className="label">{copilotAcceptanceBar.label}</span>
+                <span
+                  className={clsx('mono spark copilot-acceptance-bar', copilotAcceptanceBar.tone ? `tone-${copilotAcceptanceBar.tone}` : null)}
+                  data-percent={copilotAcceptanceBar.percent}
+                  data-bar={copilotAcceptanceBar.bar}
+                >
+                  {copilotAcceptanceBar.bar}
+                </span>
+                <span className="value">{copilotAcceptanceBar.percent}%</span>
+              </div>
+              <TypewriterText className="retro-card-note copilot-narrative" initialText={copilotNarrative} />
+            </div>
+          </section>
+
+          {/* Learning Module */}
+          <section className="retro-section learning-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">LEARNING PATH</div>
+            <TerminalCommand className="learning-command mb-4" text="> getdata --courses --certifications --growth" />
+            <DataCardGroup items={learningCards} className="learning-cards mb-4" />
+            <div className="retro-card is-gold">
+              <div className="retro-card-title">GROWTH TRAJECTORY</div>
+              <TypewriterText className="retro-card-note learning-narrative" initialText={learningNarrative} />
+            </div>
+          </section>
+
+          {/* Community Module */}
+          <section className="retro-section community-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">COMMUNITY IMPACT</div>
+            <TerminalCommand className="community-command mb-4" text="> getdata --bravos --events --contributions" />
+            <DataCardGroup items={communityCards} className="community-cards mb-4" />
+            <div className="retro-card is-blue">
+              <div className="retro-card-title">ACTIVITIES</div>
+              <div className="space-y-2 community-activities">
+                {communityActivities.map((activity, index) => (
+                  <div key={activity.name + index} className="stat-row">
+                    <span className="label">{activity.icon} {activity.name}</span>
+                    <span className="value">{activity.date}</span>
+                  </div>
+                ))}
+              </div>
+              <TypewriterText className="retro-card-note community-narrative mt-2" initialText={communityNarrative} />
+            </div>
+          </section>
+
+          {/* Summary */}
+          <section className="retro-section summary-section" style={{ opacity: 0, visibility: 'hidden' }}>
+            <div className="section-title">SUMMARY</div>
+            <TerminalCommand className="summary-command mb-4" text="> compute --score --achievements" />
+            <div className="retro-card is-gold mb-4">
+              <div className="retro-card-title">FINAL SCORE</div>
+              <div className="summary-score">{summary.overallScore}</div>
+              <div className="retro-card-note text-center mt-2">+{summary.growthPercentage}% power growth from last year</div>
+            </div>
+            <div className="retro-card is-blue mb-4">
+              <div className="retro-card-title">HIGHLIGHTS</div>
+              <div className="space-y-2">
+                {summary.highlights.map((highlight, index) => (
+                  <div key={index} className="retro-card-note">• {highlight}</div>
+                ))}
+              </div>
+            </div>
+            <div className="retro-card is-green mb-4">
+              <div className="retro-card-title">NARRATIVE</div>
+              <div className="retro-card-note">{summary.narrative}</div>
+            </div>
+            <div className="achievement-grid mb-4">
+              {achievements.map((ach, index) => (
+                <div key={ach.name + index} className={clsx('achievement-card', rarityClass(ach.rarity))}>
+                  <div className="name">{ach.icon} {ach.name}</div>
+                  <div className="rarity">[{ach.rarity.toUpperCase()}]</div>
+                  <div className="retro-card-note">{ach.note}</div>
+                </div>
+              ))}
+            </div>
+            <div
+              className="menu-line summary-menu"
+              style={{
+                opacity: showMenu ? 1 : 0,
+                visibility: showMenu ? 'visible' : 'hidden',
+                pointerEvents: showMenu ? 'auto' : 'none',
+              }}
+            >
+              <span onClick={onReplay}>[R]eplay</span>
+              <span>[D]ownload</span>
+              <span>[S]hare</span>
+            </div>
+          </section>
         </div>
       </div>
     );
