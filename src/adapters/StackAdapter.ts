@@ -78,7 +78,7 @@ export class StackAdapter {
       return {
         label: lang.name,
         percent,
-        bar: generateProgressBar(percent, 90),
+        bar: generateProgressBar(percent, 80),
         tone,
       };
     });
@@ -92,7 +92,7 @@ export class StackAdapter {
         label: framework.name,
         hours: framework.hours,
         percent,
-        bar: generateProgressBar(percent, 90),
+        bar: generateProgressBar(percent, 80),
         tone: 'blue',
       };
     });
@@ -140,7 +140,7 @@ export class StackAdapter {
         label: skill.name,
         level: skill.level.toUpperCase(),
         percent,
-        bar: generateProgressBar(percent, 90),
+        bar: generateProgressBar(percent, 80),
         tone: levelToTone(skill.level)
       };
     });

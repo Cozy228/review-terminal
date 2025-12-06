@@ -12,10 +12,11 @@ interface IdlePageProps {
   statusMessage?: string | null;
   errorMessage?: string | null;
   isBusy?: boolean;
+  isAuthEnabled?: boolean;
 }
 
 export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
-  ({ cursorRef, statusMessage, errorMessage, isBusy }, ref) => {
+  ({ cursorRef, statusMessage, errorMessage, isBusy, isAuthEnabled = true }, ref) => {
     const [doneCount, setDoneCount] = useState(0);
     const titlesDone = useMemo(() => doneCount >= 1, [doneCount]);
     const promptOpacity = titlesDone ? 1 : 0;
@@ -82,7 +83,9 @@ export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
                 <span>
                   {isBusy
                     ? statusMessage || "[ Working... ]"
-                    : "[ Press ENTER to Initialize System ]"}
+                    : isAuthEnabled
+                    ? "[ Press ENTER to Initialize System ]"
+                    : "[ Press ENTER to Load Demo Data ]"}
                 </span>
                 <span
                   ref={cursorRef}

@@ -25,6 +25,17 @@ interface Achievement {
   note: string;
 }
 
+const parseHighlight = (text: string) => {
+  // Match numbers (including decimals and percentages)
+  const parts = text.split(/(\d+\.?\d*%?)/g);
+  return parts.map((part, i) => {
+    if (/\d/.test(part)) {
+      return <span key={i} className="highlight-number">{part}</span>;
+    }
+    return part;
+  });
+};
+
 export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
   ({ reviewData, displayUser, showMenu, onReplay }, ref) => {
     const { user, git, techStack, workflow, cicd, jira, copilot, learning, community, summary } = reviewData;
@@ -274,9 +285,9 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
               <div className="retro-card-title">ACTIVITIES</div>
               <div className="space-y-2 community-activities">
                 {communityActivities.map((activity, index) => (
-                  <div key={activity.name + index} className="stat-row">
-                    <span className="label">{activity.icon} {activity.name}</span>
-                    <span className="value">{activity.date}</span>
+                  <div key={activity.name + index} className="activity-row">
+                    <span className="activity-date">{activity.date}</span>
+                    <span className="activity-name">{activity.icon} {activity.name}</span>
                   </div>
                 ))}
               </div>
@@ -297,7 +308,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
               <div className="retro-card-title">HIGHLIGHTS</div>
               <div className="space-y-2">
                 {summary.highlights.map((highlight, index) => (
-                  <div key={index} className="retro-card-note">• {highlight}</div>
+                  <div key={index} className="highlight-text">• {parseHighlight(highlight)}</div>
                 ))}
               </div>
             </div>

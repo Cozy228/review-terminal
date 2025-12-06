@@ -20,6 +20,7 @@ gsap.registerPlugin(TextPlugin, ScrollToPlugin);
 
 function App() {
   useTheme();
+  const isAuthEnabled = import.meta.env.VITE_AUTH_ENABLED === 'true';
   const [status, setStatus] = useState<TerminalStatus>('READY');
   const [phase, setPhase] = useState<AnimationPhase>('idle');
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -46,7 +47,7 @@ function App() {
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
 
-  const scrollToModule = useCallback((selector: string) => {
+  const scrollToModule = useCallback((selector: string, topOffset: number = 0.3) => {
     const container = dataPageRef.current;
     if (!container) return;
     userScrollingRef.current = false;
@@ -65,7 +66,7 @@ function App() {
       const targetTopInContent = targetRect.top - contentRect.top;
       const containerHeight = container.clientHeight;
 
-      return targetTopInContent - (containerHeight * 0.3);
+      return targetTopInContent - (containerHeight * topOffset);
     };
 
     requestAnimationFrame(() => {
@@ -291,38 +292,40 @@ function App() {
       })
       .to(dataPageRef.current, { opacity: 1, duration: 0.3 });
 
+    // Player: 方案1 - 先滚动再显示
     replayTl
-      .set('.player-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.player-section'), '+=0.2')
+      .set('.player-section', { visibility: 'visible' }, '+=0.3')
       .to('.player-section', { opacity: 1, y: 0, duration: 1, ease: 'steps(10)' })
       .to('.player-command .command-text', { text: '> initialize --player --status', duration: 1.2, ease: 'none' }, '<')
-      .add(() => scrollToModule('.player-command'))
       .add(() => { gsap.set('.player-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
-      .from('.player-cards .retro-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.2, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.player-section'), '+=0.3');
+      .from('.player-cards .retro-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.2, ease: 'power1.out' }, '+=0.3');
 
+    // Git: 方案1 - 先滚动再显示
     replayTl
       .add(() => setPhase('git'), '+=2')
-      .set('.git-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.git-section'), '+=0.2')
+      .set('.git-section', { visibility: 'visible' }, '+=0.3')
       .to('.git-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.git-command .command-text', { text: '> getdata --github --commits --prs', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.git-command'))
       .add(() => { gsap.set('.git-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.git-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.25, ease: 'power1.out' }, '+=0.3')
-      .from('.git-monthly-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.3')
+      .add(() => scrollToModule('.git-monthly-card'), '+=0.3')
+      .from('.git-monthly-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.2')
       .add(() => {
         const el = document.querySelector('.git-monthly-chart') as HTMLElement | null;
         if (el) el.textContent = monthlyChartText;
       })
       .from('.git-monthly-chart', { opacity: 0, duration: 0.8 })
-      .from('.git-narrative', { opacity: 0, duration: 0.6 }, '-=0.3')
-      .add(() => scrollToModule('.git-monthly-card'), '+=0.3');
+      .from('.git-narrative', { opacity: 0, duration: 0.6 }, '-=0.3');
 
+    // Skills: 方案1变体 - 滚动到 section 而不是 command
     replayTl
       .add(() => setPhase('stack'), '+=2')
-      .set('.skills-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.skills-section'), '+=0.2')
+      .set('.skills-section', { visibility: 'visible' }, '+=0.3')
       .to('.skills-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.skills-command .command-text', { text: '> analyze --languages --frameworks', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.skills-command'))
       .add(() => { gsap.set('.skills-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.skills-section .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3');
     animateBarText(replayTl, '.language-bar');
@@ -332,89 +335,89 @@ function App() {
     animateBarText(replayTl, '.level-bar');
     replayTl.add(() => scrollToModule('.leveling-bars'), '+=0.3');
 
+    // Delivery: 方案1 - 先滚动再显示
     replayTl
       .add(() => setPhase('flow'), '+=2')
-      .set('.delivery-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.delivery-section'), '+=0.2')
+      .set('.delivery-section', { visibility: 'visible' }, '+=0.3')
       .to('.delivery-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.delivery-command .command-text', { text: '> getdata --jira --stories --bugs', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.delivery-command'))
       .add(() => { gsap.set('.delivery-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.delivery-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
       .to('.delivery-section .retro-card.is-red', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
     animateBarText(replayTl, '.project-bar');
     replayTl.add(() => scrollToModule('.delivery-projects'), '+=0.3');
 
-    // CI/CD Section
+    // CI/CD: 方案1 - 先滚动再显示
     replayTl
       .add(() => setPhase('cicd'), '+=2')
-      .set('.cicd-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.cicd-section'), '+=0.2')
+      .set('.cicd-section', { visibility: 'visible' }, '+=0.3')
       .to('.cicd-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.cicd-command .command-text', { text: '> monitor --builds --deployments --pipelines', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.cicd-command'))
       .add(() => { gsap.set('.cicd-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.cicd-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
       .to('.cicd-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
     animateBarText(replayTl, '.build-success-bar');
     replayTl.add(() => scrollToModule('.cicd-section .retro-card'), '+=0.3');
 
-    // Copilot Section
+    // Copilot: 方案1 - 先滚动再显示
     replayTl
       .add(() => setPhase('copilot'), '+=2')
-      .set('.copilot-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.copilot-section'), '+=0.2')
+      .set('.copilot-section', { visibility: 'visible' }, '+=0.3')
       .to('.copilot-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.copilot-command .command-text', { text: '> analyze --copilot --productivity', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.copilot-command'))
       .add(() => { gsap.set('.copilot-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.copilot-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
-      .to('.copilot-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
+      .add(() => scrollToModule('.copilot-section .retro-card'), '+=0.3')
+      .to('.copilot-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.2');
     animateBarText(replayTl, '.copilot-acceptance-bar');
-    replayTl.add(() => scrollToModule('.copilot-section .retro-card'), '+=0.3');
 
-    // Learning Section
+    // Learning: 方案1 - 先滚动再显示
     replayTl
       .add(() => setPhase('learning'), '+=2')
-      .set('.learning-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.learning-section'), '+=0.2')
+      .set('.learning-section', { visibility: 'visible' }, '+=0.3')
       .to('.learning-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.learning-command .command-text', { text: '> getdata --courses --certifications --growth', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.learning-command'))
       .add(() => { gsap.set('.learning-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.learning-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
-      .to('.learning-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.learning-section .retro-card'), '+=0.3');
+      .add(() => scrollToModule('.learning-section .retro-card'), '+=0.5')
+      .to('.learning-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.2')
+      .add(() => scrollToModule('.learning-section .retro-card'), '+=0.5');
 
-    // Community Section
+    // Community: 方案1 - 先滚动再显示
     replayTl
       .add(() => setPhase('community'), '+=2')
-      .set('.community-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.community-section'), '+=0.2')
+      .set('.community-section', { visibility: 'visible' }, '+=0.3')
       .to('.community-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.community-command .command-text', { text: '> getdata --bravos --events --contributions', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.community-command'))
       .add(() => { gsap.set('.community-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.community-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
-      .to('.community-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.community-section .retro-card'), '+=0.3');
+      .add(() => scrollToModule('.community-section .retro-card', 0.1), '+=0.8')
+      .to('.community-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.5');
 
+    // Summary: 方案1 - 先滚动再显示
     replayTl
       .add(() => {
         setPhase('summary');
-        setStatus('COMPLETE');
       }, '+=2')
-      .set('.summary-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.summary-section'), '+=0.2')
+      .set('.summary-section', { visibility: 'visible' }, '+=0.3')
       .to('.summary-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.summary-command .command-text', { text: '> compute --score --achievements', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.summary-command'))
       .add(() => { gsap.set('.summary-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.summary-section .retro-card', { opacity: 0, y: 12, duration: 0.8, ease: 'power1.out' }, '+=0.3')
       .from('.summary-score', { textContent: 0, duration: 1.5, snap: { textContent: 1 }, ease: 'power1.inOut' }, '-=0.3')
-      .from('.achievement-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.15, ease: 'power1.out' }, '+=0.3')
+      .add(() => scrollToModule('.achievement-card'), '+=0.5')
+      .from('.achievement-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.15, ease: 'power1.out' }, '+=0.2')
+      .add(() => scrollToModule('.achievement-card'), '+=0.3')
       .add(() => setShowMenu(true), '+=0.3')
-      .to('.summary-menu', { opacity: 1, y: 0, duration: 0.8, ease: 'power1.out' })
-      .add(() => {
-        const lenis = dataLenisRef.current;
-        if (lenis && lenis.limit > 0) {
-          lenis.scrollTo(lenis.limit, { duration: 1.5, easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-        }
-      }, '+=0.3');
+      .add(() => scrollToModule('.summary-menu'), '+=0.3')
+      .to('.summary-menu', { opacity: 1, y: 0, duration: 0.8, ease: 'power1.out' }, '+=0.2')
+      .add(() => setStatus('COMPLETE'));
 
     replayTl.play();
     timelineRef.current = replayTl;
@@ -498,38 +501,40 @@ function App() {
       resetRetroModules();
     });
 
+    // Player: 方案1 - 先滚动再显示
     tl
-      .set('.player-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.player-section'), '+=0.2')
+      .set('.player-section', { visibility: 'visible' }, '+=0.3')
       .to('.player-section', { opacity: 1, y: 0, duration: 1, ease: 'steps(10)' })
       .to('.player-command .command-text', { text: '> initialize --player --status', duration: 1.2, ease: 'none' }, '<')
-      .add(() => scrollToModule('.player-command'))
       .add(() => { gsap.set('.player-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
-      .from('.player-cards .retro-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.2, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.player-section'), '+=0.3');
+      .from('.player-cards .retro-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.2, ease: 'power1.out' }, '+=0.3');
 
+    // Git: 方案1 - 先滚动再显示
     tl
       .add(() => setPhase('git'), '+=2')
-      .set('.git-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.git-section'), '+=0.2')
+      .set('.git-section', { visibility: 'visible' }, '+=0.3')
       .to('.git-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.git-command .command-text', { text: '> getdata --github --commits --prs', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.git-command'))
       .add(() => { gsap.set('.git-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.git-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.25, ease: 'power1.out' }, '+=0.3')
-      .from('.git-monthly-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.3')
+      .add(() => scrollToModule('.git-monthly-card'), '+=0.3')
+      .from('.git-monthly-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.2')
       .add(() => {
         const el = document.querySelector('.git-monthly-chart') as HTMLElement | null;
         if (el) el.textContent = monthlyChartText;
       })
       .from('.git-monthly-chart', { opacity: 0, duration: 0.8 })
-      .from('.git-narrative', { opacity: 0, duration: 0.6 }, '-=0.3')
-      .add(() => scrollToModule('.git-monthly-card'), '+=0.3');
+      .from('.git-narrative', { opacity: 0, duration: 0.6 }, '-=0.3');
 
+    // Skills: 方案1变体 - 滚动到 section 而不是 command
     tl
       .add(() => setPhase('stack'), '+=2')
-      .set('.skills-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.skills-section'), '+=0.2')
+      .set('.skills-section', { visibility: 'visible' }, '+=0.3')
       .to('.skills-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.skills-command .command-text', { text: '> analyze --languages --frameworks', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.skills-command'))
       .add(() => { gsap.set('.skills-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.skills-section .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3');
     animateBarText(tl, '.language-bar');
@@ -539,89 +544,89 @@ function App() {
     animateBarText(tl, '.level-bar');
     tl.add(() => scrollToModule('.leveling-bars'), '+=0.3');
 
+    // Delivery: 方案1 - 先滚动再显示
     tl
       .add(() => setPhase('flow'), '+=2')
-      .set('.delivery-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.delivery-section'), '+=0.2')
+      .set('.delivery-section', { visibility: 'visible' }, '+=0.3')
       .to('.delivery-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.delivery-command .command-text', { text: '> getdata --jira --stories --bugs', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.delivery-command'))
       .add(() => { gsap.set('.delivery-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.delivery-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
       .to('.delivery-section .retro-card.is-red', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
     animateBarText(tl, '.project-bar');
     tl.add(() => scrollToModule('.delivery-projects'), '+=0.3');
 
-    // CI/CD Section
+    // CI/CD: 方案1 - 先滚动再显示
     tl
       .add(() => setPhase('cicd'), '+=2')
-      .set('.cicd-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.cicd-section'), '+=0.2')
+      .set('.cicd-section', { visibility: 'visible' }, '+=0.3')
       .to('.cicd-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.cicd-command .command-text', { text: '> monitor --builds --deployments --pipelines', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.cicd-command'))
       .add(() => { gsap.set('.cicd-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.cicd-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
       .to('.cicd-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
     animateBarText(tl, '.build-success-bar');
     tl.add(() => scrollToModule('.cicd-section .retro-card'), '+=0.3');
 
-    // Copilot Section
+    // Copilot: 方案1 - 先滚动再显示
     tl
       .add(() => setPhase('copilot'), '+=2')
-      .set('.copilot-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.copilot-section'), '+=0.2')
+      .set('.copilot-section', { visibility: 'visible' }, '+=0.3')
       .to('.copilot-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.copilot-command .command-text', { text: '> analyze --copilot --productivity', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.copilot-command'))
       .add(() => { gsap.set('.copilot-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.copilot-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
-      .to('.copilot-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
+      .add(() => scrollToModule('.copilot-section .retro-card'), '+=0.3')
+      .to('.copilot-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.2');
     animateBarText(tl, '.copilot-acceptance-bar');
-    tl.add(() => scrollToModule('.copilot-section .retro-card'), '+=0.3');
 
-    // Learning Section
+    // Learning: 方案1 - 先滚动再显示
     tl
       .add(() => setPhase('learning'), '+=2')
-      .set('.learning-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.learning-section'), '+=0.2')
+      .set('.learning-section', { visibility: 'visible' }, '+=0.3')
       .to('.learning-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.learning-command .command-text', { text: '> getdata --courses --certifications --growth', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.learning-command'))
       .add(() => { gsap.set('.learning-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.learning-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
-      .to('.learning-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.learning-section .retro-card'), '+=0.3');
+      .add(() => scrollToModule('.learning-section .retro-card'), '+=0.5')
+      .to('.learning-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.2')
+      .add(() => scrollToModule('.learning-section .retro-card'), '+=0.5');
 
-    // Community Section
+    // Community: 方案1 - 先滚动再显示
     tl
       .add(() => setPhase('community'), '+=2')
-      .set('.community-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.community-section'), '+=0.2')
+      .set('.community-section', { visibility: 'visible' }, '+=0.3')
       .to('.community-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.community-command .command-text', { text: '> getdata --bravos --events --contributions', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.community-command'))
       .add(() => { gsap.set('.community-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.community-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.3, ease: 'power1.out' }, '+=0.3')
-      .to('.community-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.community-section .retro-card'), '+=0.3');
+      .add(() => scrollToModule('.community-section .retro-card', 0.1), '+=0.8')
+      .to('.community-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.5');
 
+    // Summary: 方案1 - 先滚动再显示
     tl
       .add(() => {
         setPhase('summary');
-        setStatus('COMPLETE');
       }, '+=2')
-      .set('.summary-section', { visibility: 'visible' })
+      .add(() => scrollToModule('.summary-section'), '+=0.2')
+      .set('.summary-section', { visibility: 'visible' }, '+=0.3')
       .to('.summary-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
       .to('.summary-command .command-text', { text: '> compute --score --achievements', duration: 1.5, ease: 'none' })
-      .add(() => scrollToModule('.summary-command'))
       .add(() => { gsap.set('.summary-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.summary-section .retro-card', { opacity: 0, y: 12, duration: 0.8, ease: 'power1.out' }, '+=0.3')
       .from('.summary-score', { textContent: 0, duration: 1.5, snap: { textContent: 1 }, ease: 'power1.inOut' }, '-=0.3')
-      .from('.achievement-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.15, ease: 'power1.out' }, '+=0.3')
+      .add(() => scrollToModule('.achievement-card'), '+=0.5')
+      .from('.achievement-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.15, ease: 'power1.out' }, '+=0.2')
+      .add(() => scrollToModule('.achievement-card'), '+=0.3')
       .add(() => setShowMenu(true), '+=0.3')
-      .to('.summary-menu', { opacity: 1, y: 0, duration: 0.8, ease: 'power1.out' })
-      .add(() => {
-        const lenis = dataLenisRef.current;
-        if (lenis && lenis.limit > 0) {
-          lenis.scrollTo(lenis.limit, { duration: 1.5, easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-        }
-      }, '+=0.3');
+      .add(() => scrollToModule('.summary-menu'), '+=0.3')
+      .to('.summary-menu', { opacity: 1, y: 0, duration: 0.8, ease: 'power1.out' }, '+=0.2')
+      .add(() => setStatus('COMPLETE'));
 
     tl.play();
   }, [animateBarText, monthlyChartText, resetRetroModules, scrollToModule, setShowMenu, setStatus, setupDataScroll]);
@@ -820,7 +825,12 @@ function App() {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (phase === 'idle') {
         if (e.key === 'Enter' || e.key === ' ') {
-          startAuthFlow();
+          if (isAuthEnabled) {
+            startAuthFlow();
+          } else {
+            // Skip auth and go directly to data timeline
+            handleAuthComplete(null);
+          }
         } else if (e.key === 'e' || e.key === 'E') {
           startExecutiveAnimation();
         }
@@ -839,11 +849,11 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [phase, isExecutiveMode, startAuthFlow, startExecutiveAnimation, replayAnimation, replayExecAnimation, resetToIdle]);
+  }, [phase, isExecutiveMode, isAuthEnabled, startAuthFlow, handleAuthComplete, startExecutiveAnimation, replayAnimation, replayExecAnimation, resetToIdle]);
 
   const showScrollbar = phase !== 'idle' && phase !== 'auth';
 
-  const isAuthCallbackRoute = window.location.pathname === (import.meta.env.VITE_AUTH_CALLBACK_PATH || '/auth/callback');
+  const isAuthCallbackRoute = isAuthEnabled && window.location.pathname === (import.meta.env.VITE_AUTH_CALLBACK_PATH || '/auth/callback');
 
   if (isAuthCallbackRoute) {
     return <AuthCallback />;
@@ -852,13 +862,14 @@ function App() {
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       <WindowChrome username={isExecutiveMode ? 'executive' : displayUser} />
-      <IdlePage 
-        ref={idlePageRef} 
-        cursorRef={cursorRef} 
+      <IdlePage
+        ref={idlePageRef}
+        cursorRef={cursorRef}
         onExecutiveMode={startExecutiveAnimation}
         statusMessage={authMessage}
         errorMessage={authErrorMessage}
         isBusy={authStatus === 'auth' || authStatus === 'loading'}
+        isAuthEnabled={isAuthEnabled}
       />
       <DataPage 
         ref={dataPageRef}

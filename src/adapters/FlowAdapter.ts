@@ -158,16 +158,16 @@ export class FlowAdapter {
         return {
           label: project,
           percent,
-          bar: generateProgressBar(percent, 90)
+          bar: generateProgressBar(percent, 80)
         };
       });
     }
 
     // Fallback to hardcoded projects
     const projects: ProjectProgress[] = [
-      { label: 'Platform Modernization', percent: 100, bar: generateProgressBar(100, 90) },
-      { label: 'API Gateway', percent: 75, bar: generateProgressBar(75, 90) },
-      { label: 'Dashboard v2', percent: 52, bar: generateProgressBar(52, 90) },
+      { label: 'Platform Modernization', percent: 100, bar: generateProgressBar(100, 80) },
+      { label: 'API Gateway', percent: 75, bar: generateProgressBar(75, 80) },
+      { label: 'Dashboard v2', percent: 52, bar: generateProgressBar(52, 80) },
     ];
 
     return projects;

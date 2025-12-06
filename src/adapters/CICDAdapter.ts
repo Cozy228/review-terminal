@@ -56,7 +56,7 @@ export class CICDAdapter {
     return {
       label: 'Build Success Rate',
       percent: successRate,
-      bar: generateProgressBar(successRate, 45),
+      bar: generateProgressBar(successRate, 80),
       tone: successRate >= 90 ? 'green' : successRate >= 75 ? 'gold' : 'red'
     };
   }

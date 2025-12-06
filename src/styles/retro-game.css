@@ -118,6 +118,7 @@
   font-size: 0.9rem;
   color: var(--retro-dim);
   min-height: 20px;
+  line-height: 1.5;
 }
 
 .retro-card.is-green .retro-card-value {
@@ -196,9 +197,10 @@
 
 .stat-row {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr) 80px;
+  grid-template-columns: 180px max-content max-content;
   align-items: center;
   gap: calc(var(--unit) * 1);
+  column-gap: calc(var(--unit) * 0.75);
   font-size: 0.95rem;
   letter-spacing: 0.04em;
 }
@@ -209,6 +211,36 @@
 
 .stat-row .value {
   color: var(--text-primary);
+  margin-left: 2rem;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  align-items: center;
+  gap: calc(var(--unit) * 2);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.activity-date {
+  color: var(--retro-gold);
+  font-weight: 600;
+}
+
+.activity-name {
+  color: var(--text-primary);
+}
+
+.highlight-text {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.highlight-text .highlight-number {
+  color: var(--accent-highlight);
+  font-weight: 600;
 }
 
 .badge {

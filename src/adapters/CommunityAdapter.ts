@@ -73,7 +73,7 @@ export class CommunityAdapter {
 
   static toNarrative(data: CommunityData): string {
     const totalBravos = data.bravosReceived + data.bravosGiven;
-    const quality = totalBravos > 70 ? 'CULTURE CHAMPION' : totalBravos > 40 ? 'TEAM PLAYER' : 'CONTRIBUTOR';
+    const quality = totalBravos > 80 ? 'CULTURE CHAMPION' : totalBravos > 40 ? 'TEAM PLAYER' : 'CONTRIBUTOR';
     return `${quality}: ${data.bravosReceived} bravos earned, ${data.bravosGiven} given, ${data.activities.length} community events.`;
   }
 }

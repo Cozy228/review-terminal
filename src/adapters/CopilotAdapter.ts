@@ -51,13 +51,13 @@ export class CopilotAdapter {
     return {
       label: 'Acceptance Rate',
       percent: data.acceptanceRate,
-      bar: generateProgressBar(data.acceptanceRate, 45),
+      bar: generateProgressBar(data.acceptanceRate, 80),
       tone: data.acceptanceRate >= 60 ? 'green' : data.acceptanceRate >= 40 ? 'gold' : 'red'
     };
   }
 
   static toNarrative(data: CopilotData): string {
-    const quality = data.acceptanceRate >= 70 ? 'POWER USER' : data.acceptanceRate >= 50 ? 'EFFICIENT' : 'EXPERIMENTAL';
+    const quality = data.acceptanceRate >= 80 ? 'POWER USER' : data.acceptanceRate >= 50 ? 'EFFICIENT' : 'EXPERIMENTAL';
     return `${quality} AI pairing: ${data.acceptanceRate}% acceptance, ${data.suggestionsAccepted.toLocaleString()} suggestions, ${data.linesGenerated.toLocaleString()} lines generated, saved ${data.timesSaved}.`;
   }
 }
