@@ -119,25 +119,25 @@ export class FlowAdapter {
       {
         title: 'STORIES COMPLETED',
         value: storiesCompleted.toString(),
-        note: 'Critical hits landed.',
+        note: 'Legendary quests unlocked',
         tone: 'green'
       },
       {
         title: 'BUGS SQUASHED',
         value: bugsFixed.toString(),
-        note: 'It was a massacre.',
+        note: 'Exterminator mode activated',
         tone: 'red'
       },
       {
         title: 'IN PROGRESS',
         value: tickets.inProgress.toString(),
-        note: epicsContributed ? `${epicsContributed} epics active.` : 'Keep the sprint burning.',
+        note: epicsContributed ? `${epicsContributed} epic quests raging` : 'The grind continues',
         tone: 'gold'
       },
       {
         title: 'CYCLE TIME',
         value: cycleTime,
-        note: `Completion: ${completionRate.toFixed(1)}%`,
+        note: `${completionRate.toFixed(1)}% completion rate`,
         tone: 'blue'
       }
     ];

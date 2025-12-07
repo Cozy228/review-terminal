@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { forwardRef, useMemo } from 'react';
-import { DataCardGroup, TerminalCommand, TypewriterText, DataCard } from '../components/retro';
+import { DataCardGroup, TerminalCommand, TypewriterText, DataCard, ContributionGrid } from '../components/retro';
 import { GitAdapter } from '../adapters/GitAdapter';
 import { StackAdapter } from '../adapters/StackAdapter';
 import { FlowAdapter } from '../adapters/FlowAdapter';
@@ -42,7 +42,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
 
     // Git data
     const gitCards = useMemo(() => GitAdapter.toStatCards(git), [git]);
-    const monthlyChart = useMemo(() => GitAdapter.toMonthlyBlocks(git), [git]);
+    const contributionData = useMemo(() => GitAdapter.toContributionGridData(git), [git]);
     const gitNarrative = useMemo(() => GitAdapter.toNarrative(git), [git]);
 
     // Tech stack data
@@ -136,8 +136,10 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
             <TerminalCommand className="git-command mb-4" text="> getdata --github --commits --prs" />
             <DataCardGroup items={gitCards} className="git-cards mb-4" />
             <div className="retro-card is-blue git-monthly-card">
-              <div className="retro-card-title">MONTHLY COMMITS</div>
-              <pre className="ascii-plot git-monthly-chart" dangerouslySetInnerHTML={{ __html: monthlyChart }}></pre>
+              <div className="retro-card-title">2025 CONTRIBUTION ACTIVITY</div>
+              <div className="contribution-wrapper">
+                <ContributionGrid data={contributionData} />
+              </div>
               <TypewriterText className="retro-card-note git-narrative" initialText={gitNarrative} />
             </div>
           </section>
@@ -311,10 +313,6 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
                   <div key={index} className="highlight-text">• {parseHighlight(highlight)}</div>
                 ))}
               </div>
-            </div>
-            <div className="retro-card is-green mb-4">
-              <div className="retro-card-title">NARRATIVE</div>
-              <div className="retro-card-note">{summary.narrative}</div>
             </div>
             <div className="achievement-grid mb-4">
               {achievements.map((ach, index) => (

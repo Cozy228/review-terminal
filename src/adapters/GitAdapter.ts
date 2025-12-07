@@ -1,6 +1,5 @@
 import plot from 'simple-ascii-chart';
-import type { GitData } from '../types';
-import { generateBlockChart } from '../utils/ascii';
+import type { GitData, ContributionGridData, MonthContributionData } from '../types';
 
 type StatTone = 'green' | 'gold' | 'blue' | 'red';
 
@@ -69,49 +68,98 @@ export class GitAdapter {
 
   static toStatCards(data: GitData): StatCard[] {
     const productive = data.totalCommits > 1200;
-    const precision = data.totalCommits < 800;
 
     return [
       {
         title: 'TOTAL COMMITS',
         value: data.totalCommits.toLocaleString(),
-        note: productive ? 'Keyboard on fire!' : 'Tactical precision.',
+        note: productive ? 'Keyboard begging for mercy' : 'Quality over quantity',
         tone: 'green'
       },
       {
         title: 'LINES OF CODE',
         value: data.totalLines.toLocaleString(),
-        note: 'Enough to script a saga.',
+        note: 'Epic codebase expansion',
         tone: 'blue'
       },
       {
         title: 'LONGEST STREAK',
         value: `${data.longestStreak} days`,
-        note: `From ${data.streakPeriod}`,
+        note: `Marathon from ${data.streakPeriod}`,
         tone: 'gold'
       },
       {
         title: 'PEAK MONTH',
         value: `${data.peakMonth} (${data.peakCommits})`,
-        note: data.topRepos[0] ? `Top repo: ${data.topRepos[0]}` : 'Steady output.',
+        note: data.topRepos[0] ? `Dominated ${data.topRepos[0]}` : 'Consistency is key',
         tone: 'green'
       }
     ];
   }
 
   static toMonthlyBlocks(data: GitData): string {
-    const values = data.commits.map((c) => c.count);
-    const monthLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-    const labels = data.commits.map((c, index) => {
-      const month = c.date.split('-')[1];
+    if (!data.commits.length) return '';
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const max = Math.max(...data.commits.map(c => c.count), 1);
+
+    // Create a horizontal grid of contribution blocks
+    const blocks = data.commits.map((commit, index) => {
+      const month = commit.date.split('-')[1];
       const monthIndex = Math.max(0, Math.min(11, Number(month) - 1));
-      return monthLabels[monthIndex] || monthLabels[index] || ' ';
+      const monthLabel = monthNames[monthIndex] || monthNames[index] || '';
+
+      // Calculate intensity level (0-4) based on commit count
+      const intensity = commit.count / max;
+      let level = 0;
+      if (intensity > 0) level = 1;
+      if (intensity > 0.25) level = 2;
+      if (intensity > 0.5) level = 3;
+      if (intensity > 0.75) level = 4;
+
+      return `<div class="contrib-month" data-count="${commit.count}" data-month="${monthLabel}">
+        <div class="contrib-block level-${level}" title="${monthLabel}: ${commit.count} commits">
+          <span class="contrib-count">${commit.count}</span>
+        </div>
+        <div class="contrib-label">${monthLabel}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="contribution-grid">${blocks}</div>`;
+  }
+
+  static toContributionGridData(data: GitData): ContributionGridData {
+    if (!data.commits.length) return { months: [], maxCount: 0 };
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const max = Math.max(...data.commits.map(c => c.count), 1);
+
+    const months: MonthContributionData[] = data.commits.map((commit, index) => {
+      const month = commit.date.split('-')[1];
+      const monthIndex = Math.max(0, Math.min(11, Number(month) - 1));
+      const monthLabel = monthNames[monthIndex] || monthNames[index] || '';
+
+      // Calculate intensity level (0-4) based on commit count
+      const intensity = commit.count / max;
+      let level: 0 | 1 | 2 | 3 | 4 = 0;
+      if (intensity > 0) level = 1;
+      if (intensity > 0.25) level = 2;
+      if (intensity > 0.5) level = 3;
+      if (intensity > 0.75) level = 4;
+
+      return {
+        month: monthLabel,
+        count: commit.count,
+        level,
+        date: commit.date
+      };
     });
-    return generateBlockChart(values, labels, 8);
+
+    return { months, maxCount: max };
   }
 
   static toNarrative(data: GitData): string {
     const quality = data.totalCommits > 2000 ? 'ARCH-MAGE' : data.totalCommits > 1200 ? 'SENIOR' : 'ADEPT';
-    return `LV.${quality} coder: ${data.totalCommits.toLocaleString()} commits, peak ${data.peakMonth} (${data.peakCommits}), streak ${data.longestStreak} days.`;
+    return `LV.${quality} coder: <span class="highlight-number">${data.totalCommits.toLocaleString()}</span> commits, peak <span class="highlight-number">${data.peakMonth}</span> (<span class="highlight-number">${data.peakCommits}</span>), streak <span class="highlight-number">${data.longestStreak}</span> days.`;
   }
 }

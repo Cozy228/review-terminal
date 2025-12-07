@@ -16,10 +16,6 @@ export class CICDAdapter {
       ? Math.round((data.builds.successful / data.builds.total) * 100)
       : 0;
 
-    const deploymentRate = data.deployments.total > 0
-      ? Math.round((data.deployments.production / data.deployments.total) * 100)
-      : 0;
-
     return [
       {
         title: 'BUILD SUCCESS',
@@ -30,19 +26,19 @@ export class CICDAdapter {
       {
         title: 'DEPLOYMENTS',
         value: data.deployments.total.toString(),
-        note: `${data.deployments.production} to production`,
+        note: `Shipped ${data.deployments.production} times to prod`,
         tone: 'blue'
       },
       {
         title: 'AVG BUILD TIME',
         value: data.avgBuildTime,
-        note: 'Fast and furious.',
+        note: 'Lightning fast builds',
         tone: 'gold'
       },
       {
         title: 'PIPELINES',
         value: data.pipelinesConfigured.toString(),
-        note: 'Automation locked in.',
+        note: 'Automation unlocked',
         tone: 'green'
       }
     ];
@@ -67,6 +63,6 @@ export class CICDAdapter {
       : 0;
 
     const quality = successRate >= 95 ? 'ELITE' : successRate >= 85 ? 'SOLID' : 'WORKING';
-    return `${quality} DevOps: ${data.builds.successful}/${data.builds.total} builds green, ${data.deployments.production} prod deploys, avg ${data.avgBuildTime}.`;
+    return `${quality} DevOps: <span class="highlight-number">${data.builds.successful}</span>/<span class="highlight-number">${data.builds.total}</span> builds green, <span class="highlight-number">${data.deployments.production}</span> prod deploys, avg <span class="highlight-number">${data.avgBuildTime}</span>.`;
   }
 }

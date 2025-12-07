@@ -42,6 +42,18 @@ export interface GitData {
   collaborators: CollaboratorData[];
 }
 
+export interface MonthContributionData {
+  month: string;        // "Jan", "Feb", etc.
+  count: number;        // commit count
+  level: 0 | 1 | 2 | 3 | 4;  // intensity level for CSS
+  date: string;         // original date "2025-01"
+}
+
+export interface ContributionGridData {
+  months: MonthContributionData[];
+  maxCount: number;
+}
+
 export interface Language {
   name: string;
   percentage: number;

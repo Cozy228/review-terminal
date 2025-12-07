@@ -24,25 +24,25 @@ export class LearningAdapter {
       {
         title: 'COURSES COMPLETED',
         value: data.coursesCompleted.toString(),
-        note: 'Knowledge acquired.',
+        note: 'Knowledge expansion in progress',
         tone: 'blue'
       },
       {
         title: 'CERTIFICATIONS',
         value: data.certificationsEarned.toString(),
-        note: 'Badges of honor.',
+        note: 'Official credentials earned',
         tone: 'gold'
       },
       {
         title: 'LEARNING HOURS',
         value: `${data.hoursLearning}h`,
-        note: 'Continuous growth.',
+        note: 'Invested in personal growth',
         tone: 'green'
       },
       {
         title: 'SKILL AREAS',
         value: data.skills.length.toString(),
-        note: 'Multi-faceted expertise.',
+        note: 'Jack of all trades, master of many',
         tone: 'purple'
       }
     ];
@@ -94,6 +94,6 @@ export class LearningAdapter {
   static toNarrative(data: LearningData): string {
     const expertSkills = data.skills.filter(s => s.level === 'expert').length;
     const advancedSkills = data.skills.filter(s => s.level === 'advanced').length;
-    return `Learning journey: ${data.coursesCompleted} courses, ${data.certificationsEarned} certs, ${data.hoursLearning}h invested. ${expertSkills} expert + ${advancedSkills} advanced skills.`;
+    return `Learning journey: <span class="highlight-number">${data.coursesCompleted}</span> courses, <span class="highlight-number">${data.certificationsEarned}</span> certs, <span class="highlight-number">${data.hoursLearning}h</span> invested. <span class="highlight-number">${expertSkills}</span> expert + <span class="highlight-number">${advancedSkills}</span> advanced skills.`;
   }
 }

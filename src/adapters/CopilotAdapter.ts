@@ -23,25 +23,25 @@ export class CopilotAdapter {
       {
         title: 'ACCEPTANCE RATE',
         value: `${data.acceptanceRate}%`,
-        note: 'AI suggestions locked in.',
+        note: 'Perfect human-robot synergy achieved',
         tone: data.acceptanceRate >= 60 ? 'green' : data.acceptanceRate >= 40 ? 'gold' : 'red'
       },
       {
         title: 'SUGGESTIONS ACCEPTED',
         value: data.suggestionsAccepted.toLocaleString(),
-        note: 'Code generation on point.',
+        note: 'AI wisdom powering productivity',
         tone: 'purple'
       },
       {
         title: 'LINES GENERATED',
         value: data.linesGenerated.toLocaleString(),
-        note: 'AI-powered velocity.',
+        note: 'AI sidekick teamwork at its finest',
         tone: 'blue'
       },
       {
         title: 'TIME SAVED',
         value: data.timesSaved,
-        note: `Active ${data.activeDays} days`,
+        note: `Active ${data.activeDays} days - coffee breaks saved`,
         tone: 'gold'
       }
     ];
@@ -58,6 +58,6 @@ export class CopilotAdapter {
 
   static toNarrative(data: CopilotData): string {
     const quality = data.acceptanceRate >= 80 ? 'POWER USER' : data.acceptanceRate >= 50 ? 'EFFICIENT' : 'EXPERIMENTAL';
-    return `${quality} AI pairing: ${data.acceptanceRate}% acceptance, ${data.suggestionsAccepted.toLocaleString()} suggestions, ${data.linesGenerated.toLocaleString()} lines generated, saved ${data.timesSaved}.`;
+    return `${quality} AI pairing: <span class="highlight-number">${data.acceptanceRate}%</span> acceptance, <span class="highlight-number">${data.suggestionsAccepted.toLocaleString()}</span> suggestions, <span class="highlight-number">${data.linesGenerated.toLocaleString()}</span> lines generated, saved <span class="highlight-number">${data.timesSaved}</span>.`;
   }
 }

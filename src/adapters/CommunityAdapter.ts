@@ -25,25 +25,25 @@ export class CommunityAdapter {
       {
         title: 'BRAVOS RECEIVED',
         value: data.bravosReceived.toString(),
-        note: 'Recognition earned.',
+        note: 'Respect earned from the team',
         tone: 'gold'
       },
       {
         title: 'BRAVOS GIVEN',
         value: data.bravosGiven.toString(),
-        note: isGiver ? 'Team cheerleader!' : 'Generous spirit.',
+        note: isGiver ? 'Team cheerleader spreading vibes' : 'Generous spirit shining',
         tone: 'green'
       },
       {
         title: 'EVENTS',
         value: data.activities.length.toString(),
-        note: 'Community presence.',
+        note: 'Active community participant',
         tone: 'blue'
       },
       {
         title: 'IMPACT SCORE',
         value: Math.round((data.bravosReceived + data.bravosGiven + data.activities.length * 5) / 3).toString(),
-        note: 'Culture contributor.',
+        note: 'Culture champion in action',
         tone: 'gold'
       }
     ];
@@ -74,6 +74,6 @@ export class CommunityAdapter {
   static toNarrative(data: CommunityData): string {
     const totalBravos = data.bravosReceived + data.bravosGiven;
     const quality = totalBravos > 80 ? 'CULTURE CHAMPION' : totalBravos > 40 ? 'TEAM PLAYER' : 'CONTRIBUTOR';
-    return `${quality}: ${data.bravosReceived} bravos earned, ${data.bravosGiven} given, ${data.activities.length} community events.`;
+    return `${quality}: <span class="highlight-number">${data.bravosReceived}</span> bravos earned, <span class="highlight-number">${data.bravosGiven}</span> given, <span class="highlight-number">${data.activities.length}</span> community events.`;
   }
 }
