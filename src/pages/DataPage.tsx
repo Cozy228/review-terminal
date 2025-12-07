@@ -79,16 +79,18 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
       return { level, expPercent };
     }, [git.totalCommits]);
 
-    // Use real summary badges
-    const achievements: Achievement[] = useMemo(() =>
-      summary.badges.map(badge => ({
-        name: badge.name.toUpperCase(),
-        rarity: badge.rarity,
-        icon: badge.icon,
-        note: badge.description
-      })),
-      [summary.badges]
-    );
+    // Use real summary badges, sorted by rarity level
+    const achievements: Achievement[] = useMemo(() => {
+      const rarityOrder = { legendary: 0, epic: 1, rare: 2, common: 3 };
+      return summary.badges
+        .map(badge => ({
+          name: badge.name.toUpperCase(),
+          rarity: badge.rarity,
+          icon: badge.icon,
+          note: badge.description
+        }))
+        .sort((a, b) => rarityOrder[a.rarity] - rarityOrder[b.rarity]);
+    }, [summary.badges]);
 
     const rarityClass = (rarity: Achievement['rarity']) => {
       switch (rarity) {

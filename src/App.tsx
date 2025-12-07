@@ -153,9 +153,18 @@ function App() {
       { opacity: 0, visibility: 'visible' }
     );
 
+    // Hide individual highlights initially
+    gsap.set('.highlight-text', { opacity: 0, y: 8 });
+
     // Hide contribution blocks initially so they can be revealed with stagger
     gsap.set('.contrib-block', { opacity: 0, scale: 0.8, y: 10 });
     gsap.set('.contrib-label', { opacity: 0 });
+
+    // Hide all bar values initially - they should appear after bars animate
+    gsap.set('.stat-row .value', { opacity: 0 });
+
+    // Hide growth percentage text initially - should appear after score animates
+    gsap.set('.summary-section .retro-card.is-gold .retro-card-note', { opacity: 0 });
 
     const barSelectors = [
       '.language-bar',
@@ -187,6 +196,24 @@ function App() {
       },
       stagger: 0.08,
     });
+  }, []);
+
+  const animateBarValues = useCallback((tl: gsap.core.Timeline, barSelector: string) => {
+    const barTargets = gsap.utils.toArray<HTMLElement>(barSelector);
+    if (!barTargets.length) return;
+
+    // Get the parent .stat-row elements and find their .value children
+    const valueTargets = barTargets.map(bar => {
+      const statRow = bar.closest('.stat-row');
+      return statRow?.querySelector('.value');
+    }).filter(Boolean);
+
+    tl.to(valueTargets, {
+      opacity: 1,
+      duration: 0.2,
+      stagger: 0.08, // Same stagger as bars
+      ease: 'power2.out'
+    }, '<1.2'); // Start 1.2s after bars start = 0.3s delay after 0.9s bar completes
   }, []);
 
   const teardownDataScroll = useCallback(() => {
@@ -370,7 +397,8 @@ function App() {
       .to('.git-command .command-text', { text: '> getdata --github --commits --prs', duration: 1.5, ease: 'none' })
       .add(() => { gsap.set('.git-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.git-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.4, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.git-monthly-card'), '+=0.3')
+      .add(() => scrollToModule('.git-cards .retro-card:nth-child(6)'), '-=2.0')
+      .add(() => scrollToModule('.git-monthly-card'), '+=1.5')
       .from('.git-monthly-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.2')
       .to('.contrib-block', {
         opacity: 1,
@@ -392,10 +420,13 @@ function App() {
       .add(() => { gsap.set('.skills-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.skills-section .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.45, ease: 'power1.out' }, '+=0.3');
     animateBarText(tl, '.language-bar');
+    animateBarValues(tl, '.language-bar');
     tl.add(() => scrollToModule('.language-bars'), '+=0.3');
     animateBarText(tl, '.framework-bar');
+    animateBarValues(tl, '.framework-bar');
     tl.add(() => scrollToModule('.framework-bars'), '+=0.3');
     animateBarText(tl, '.level-bar');
+    animateBarValues(tl, '.level-bar');
     tl.add(() => scrollToModule('.leveling-bars'), '+=0.3');
 
     tl
@@ -408,6 +439,7 @@ function App() {
       .from('.delivery-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.45, ease: 'power1.out' }, '+=0.3')
       .to('.delivery-section .retro-card.is-red', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
     animateBarText(tl, '.project-bar');
+    animateBarValues(tl, '.project-bar');
     tl.add(() => scrollToModule('.delivery-projects'), '+=0.3');
 
     // CI/CD Section
@@ -421,6 +453,7 @@ function App() {
       .from('.cicd-cards .retro-card', { opacity: 0, y: 12, duration: 1, stagger: 0.45, ease: 'power1.out' }, '+=0.3')
       .to('.cicd-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
     animateBarText(tl, '.build-success-bar');
+    animateBarValues(tl, '.build-success-bar');
     tl.add(() => scrollToModule('.cicd-section .retro-card'), '+=0.3');
 
     // Copilot Section
@@ -435,6 +468,7 @@ function App() {
       .add(() => scrollToModule('.copilot-section .retro-card'), '+=0.3')
       .to('.copilot-section .retro-card', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.2');
     animateBarText(tl, '.copilot-acceptance-bar');
+    animateBarValues(tl, '.copilot-acceptance-bar');
 
     // Learning Section
     tl
@@ -469,16 +503,24 @@ function App() {
       .add(() => { gsap.set('.summary-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
       .from('.summary-section .retro-card.is-gold', { opacity: 0, y: 12, duration: 0.8, ease: 'power1.out' }, '+=0.3')
       .from('.summary-score', { textContent: 0, duration: 1.5, snap: { textContent: 1 }, ease: 'power1.inOut' }, '-=0.3')
+      // Growth percentage appears after score animation finishes
+      .to('.summary-section .retro-card.is-gold .retro-card-note', { opacity: 1, duration: 0.6, ease: 'power1.out' }, '+=0.2')
       .from('.summary-section .retro-card.is-blue', { opacity: 0, y: 12, duration: 0.8, ease: 'power1.out' }, '+=0.3')
-      .add(() => scrollToModule('.achievement-card'), '+=0.5')
-      .to('.achievement-card', { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: 'power1.out' }, '+=0.2')
-      .add(() => setShowMenu(true), '+=0.3')
-      .add(() => scrollToModule('.summary-menu'), '+=0.3')
+      // Scroll to highlights before they appear
+      .add(() => scrollToModule('.summary-section .retro-card.is-blue'), '+=0.3')
+      // Animate highlights one by one with reading time
+      .to('.highlight-text', { opacity: 1, y: 0, duration: 0.6, stagger: 1.5, ease: 'power1.out' }, '+=0.5')
+      .add(() => scrollToModule('.achievement-card'), '+=0.8')
+      // Longer delay before achievement cards appear, with longer stagger between each badge
+      .to('.achievement-card', { opacity: 1, y: 0, duration: 0.8, stagger: 0.4, ease: 'power1.out' }, '+=1.0')
+      .add(() => scrollToModule('.summary-menu'), '+=0.5')
+      .set('.summary-menu', { visibility: 'visible' })
       .to('.summary-menu', { opacity: 1, y: 0, duration: 0.8, ease: 'power1.out' })
+      .add(() => setShowMenu(true))
       .add(() => setStatus('COMPLETE'), '+=0.2');
 
     tl.play();
-  }, [animateBarText, resetRetroModules, scrollToModule, setShowMenu, setStatus, setupDataScroll]);
+  }, [animateBarText, animateBarValues, resetRetroModules, scrollToModule, setShowMenu, setStatus, setupDataScroll]);
 
   const handleAuthComplete = useCallback((user?: string | null) => {
     const username = user || mockReviewData.user.username;

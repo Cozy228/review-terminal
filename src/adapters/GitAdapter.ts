@@ -69,6 +69,16 @@ export class GitAdapter {
   static toStatCards(data: GitData): StatCard[] {
     const productive = data.totalCommits > 1200;
 
+    // Calculate PR merge rate
+    const mergeRate = data.pullRequests.opened > 0
+      ? Math.round((data.pullRequests.merged / data.pullRequests.opened) * 100)
+      : 0;
+
+    // Parse avg review time for smart notes
+    const reviewTime = data.pullRequests.avgReviewTime;
+    const hasHours = reviewTime.includes('hour');
+    const reviewHours = hasHours ? parseFloat(reviewTime) : null;
+
     return [
       {
         title: 'TOTAL COMMITS',
@@ -93,6 +103,41 @@ export class GitAdapter {
         value: `${data.peakMonth} (${data.peakCommits})`,
         note: data.topRepos[0] ? `Dominated ${data.topRepos[0]}` : 'Consistency is key',
         tone: 'green'
+      },
+      {
+        title: 'PRs OPENED',
+        value: data.pullRequests.opened.toLocaleString(),
+        note: data.pullRequests.opened > 150 ? 'PR machine on overdrive' :
+              data.pullRequests.opened > 100 ? 'Shipping code like a boss' :
+              data.pullRequests.opened > 50 ? 'Steady stream of features' :
+              'Quality over quantity',
+        tone: 'blue'
+      },
+      {
+        title: 'PRs MERGED',
+        value: data.pullRequests.merged.toLocaleString(),
+        note: mergeRate > 90 ? 'LGTM streak legendary' :
+              mergeRate > 80 ? 'Merge game strong' :
+              mergeRate > 70 ? `${mergeRate}% merge rate` :
+              'Iterating to perfection',
+        tone: 'green'
+      },
+      {
+        title: 'PRs REVIEWED',
+        value: data.pullRequests.reviewed.toLocaleString(),
+        note: data.pullRequests.reviewed > data.pullRequests.merged ? 'Code review champion' :
+              data.pullRequests.reviewed > data.pullRequests.opened ? 'Team player energy' :
+              'Crushing peer reviews',
+        tone: 'gold'
+      },
+      {
+        title: 'AVG REVIEW TIME',
+        value: reviewTime,
+        note: reviewHours && reviewHours < 6 ? 'Lightning-fast feedback' :
+              reviewHours && reviewHours < 12 ? 'Keeping velocity high' :
+              reviewTime.includes('day') && parseFloat(reviewTime) < 2 ? 'Review velocity on point' :
+              'Thoughtful code reviews',
+        tone: 'red'
       }
     ];
   }
