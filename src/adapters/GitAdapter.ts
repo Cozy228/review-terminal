@@ -207,4 +207,13 @@ export class GitAdapter {
     const quality = data.totalCommits > 2000 ? 'ARCH-MAGE' : data.totalCommits > 1200 ? 'SENIOR' : 'ADEPT';
     return `LV.${quality} coder: <span class="highlight-number">${data.totalCommits.toLocaleString()}</span> commits, peak <span class="highlight-number">${data.peakMonth}</span> (<span class="highlight-number">${data.peakCommits}</span>), streak <span class="highlight-number">${data.longestStreak}</span> days.`;
   }
+
+  static toCollaboratorList(data: GitData): Array<{
+    username: string;
+    prsTogether: number;
+    reviewsExchanged: number;
+    avatar?: string;
+  }> {
+    return data.collaborators;
+  }
 }

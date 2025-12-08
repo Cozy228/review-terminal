@@ -4,11 +4,11 @@ export const mockReviewData: ReviewData = {
   user: {
     username: 'ziyu123213',
     role: 'Senior Frontend Developer',
+    jobTitle: 'Senior Engineer',
     joinDate: '2020-01-15',
     location: 'Beijing, China',
     avatar: 'https://avatars.githubusercontent.com/u/1234567?v=4',
     department: 'Engineering',
-    team: 'Developer Experience',
   },
   git: {
     commits: [
@@ -41,7 +41,7 @@ export const mockReviewData: ReviewData = {
     collaborators: [
       { username: 'akiko', prsTogether: 38, reviewsExchanged: 41, avatar: 'https://i.pravatar.cc/120?img=15' },
       { username: 'marco', prsTogether: 44, reviewsExchanged: 36, avatar: 'https://i.pravatar.cc/120?img=12' },
-      { username: 'devon', prsTogether: 29, reviewsExchanged: 52 },
+      { username: 'devon', prsTogether: 29, reviewsExchanged: 52, avatar: 'https://i.pravatar.cc/120?img=13' },
       { username: 'liwei', prsTogether: 33, reviewsExchanged: 28, avatar: 'https://i.pravatar.cc/120?img=25' },
       { username: 'samira', prsTogether: 26, reviewsExchanged: 31, avatar: 'https://i.pravatar.cc/120?img=30' },
     ],
@@ -58,8 +58,6 @@ export const mockReviewData: ReviewData = {
       { name: 'Node.js', hours: 1523 },
       { name: 'Next.js', hours: 892 },
     ],
-    totalPackages: 247,
-    totalProjects: 18,
   },
   workflow: {
     tickets: {
@@ -102,7 +100,6 @@ export const mockReviewData: ReviewData = {
     suggestionsAccepted: 8341,
     linesGenerated: 54821,
     activeDays: 211,
-    chatSessions: 126,
     timesSaved: '~47 hours',
   },
   learning: {

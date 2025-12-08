@@ -387,7 +387,7 @@ function App() {
       .to('.player-section', { opacity: 1, y: 0, duration: 1, ease: 'steps(10)' })
       .to('.player-command .command-text', { text: '> initialize --player --status', duration: 1.2, ease: 'none' }, '<')
       .add(() => { gsap.set('.player-command', { attr: { 'data-active': 'false' } }); }, '+=0.4')
-      .from('.player-cards .retro-card', { opacity: 0, y: 10, duration: 0.8, stagger: 0.2, ease: 'power1.out' }, '+=0.3');
+      .from('.player-profile-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.3');
 
     tl
       .add(() => setPhase('git'), '+=2')
@@ -409,7 +409,10 @@ function App() {
         ease: 'back.out(1.7)'
       }, '+=0.3')
       .to('.contrib-label', { opacity: 1, duration: 0.3, stagger: 0.15 }, '-=1.5')
-      .from('.git-narrative', { opacity: 0, duration: 0.6 }, '+=0.2');
+      .from('.git-narrative', { opacity: 0, duration: 0.6 }, '+=0.2')
+      .add(() => scrollToModule('.git-collaborators-card'), '+=0.5')
+      .from('.git-collaborators-card', { opacity: 0, y: 10, duration: 0.8, ease: 'power1.out' }, '+=0.2')
+      .from('.collab-story', { opacity: 0, x: -10, duration: 0.6, stagger: 0.3, ease: 'power1.out' }, '+=0.2');
 
     tl
       .add(() => setPhase('stack'), '+=2')

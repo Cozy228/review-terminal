@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { forwardRef, useMemo } from 'react';
-import { DataCardGroup, TerminalCommand, TypewriterText, DataCard, ContributionGrid } from '../components/retro';
+import { DataCardGroup, TerminalCommand, TypewriterText, ContributionGrid } from '../components/retro';
 import { GitAdapter } from '../adapters/GitAdapter';
 import { StackAdapter } from '../adapters/StackAdapter';
 import { FlowAdapter } from '../adapters/FlowAdapter';
@@ -8,7 +8,6 @@ import { CICDAdapter } from '../adapters/CICDAdapter';
 import { CopilotAdapter } from '../adapters/CopilotAdapter';
 import { LearningAdapter } from '../adapters/LearningAdapter';
 import { CommunityAdapter } from '../adapters/CommunityAdapter';
-import { generateProgressBar } from '../utils/ascii';
 import type { ReviewData } from '../types';
 
 interface DataPageProps {
@@ -44,6 +43,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
     const gitCards = useMemo(() => GitAdapter.toStatCards(git), [git]);
     const contributionData = useMemo(() => GitAdapter.toContributionGridData(git), [git]);
     const gitNarrative = useMemo(() => GitAdapter.toNarrative(git), [git]);
+    const collaboratorsList = useMemo(() => GitAdapter.toCollaboratorList(git), [git]);
 
     // Tech stack data
     const languageBars = useMemo(() => StackAdapter.toLanguageBars(techStack), [techStack]);
@@ -73,11 +73,41 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
     const communityActivities = useMemo(() => CommunityAdapter.toActivityList(community), [community]);
     const communityNarrative = useMemo(() => CommunityAdapter.toNarrative(community), [community]);
 
+    const tenure = useMemo(() => {
+      const joinDate = new Date(user.joinDate);
+      const currentDate = new Date();
+
+      // Calculate difference in months
+      const yearsDiff = currentDate.getFullYear() - joinDate.getFullYear();
+      const monthsDiff = currentDate.getMonth() - joinDate.getMonth();
+      const totalMonths = yearsDiff * 12 + monthsDiff;
+
+      // Calculate years for display (rounded down)
+      const years = Math.floor(totalMonths / 12);
+
+      return { years, months: totalMonths };
+    }, [user.joinDate]);
+
     const playerLevel = useMemo(() => {
-      const level = Math.min(99, Math.floor(git.totalCommits / 50));
-      const expPercent = Math.min(100, Math.round((git.totalCommits % 50) / 50 * 100));
-      return { level, expPercent };
-    }, [git.totalCommits]);
+      // Calculate level based on job title and tenure
+      const jobBaseLevels: Record<string, number> = {
+        'Intern': 5,
+        'Junior Engineer': 15,
+        'Engineer': 30,
+        'Senior Engineer': 45,
+        'Staff Engineer': 65,
+        'Principal Engineer': 80,
+        'Distinguished Engineer': 92,
+      };
+
+      const baseLevel = jobBaseLevels[user.jobTitle] || 30;
+      // Use months for more precise calculation: ~0.33 levels per month, max +25
+      const tenureBonus = Math.min(Math.floor(tenure.months / 3), 25);
+
+      const level = Math.min(99, baseLevel + tenureBonus);
+
+      return { level };
+    }, [user.jobTitle, tenure]);
 
     // Use real summary badges, sorted by rarity level
     const achievements: Achievement[] = useMemo(() => {
@@ -116,18 +146,22 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
           <section className="retro-section player-section" style={{ opacity: 0, visibility: 'hidden' }}>
             <div className="section-title">PLAYER STATUS</div>
             <TerminalCommand className="player-command mb-4" text="> initialize --player --status" />
-            <div className="data-grid grid-two player-cards">
-              <DataCard
-                title="LEVEL"
-                value={`LV.${playerLevel.level.toString().padStart(2, '0')} ${user.role.toUpperCase()}`}
-                note="Status: caffeinated & compiling"
-                tone="gold"
-                className="player-level-card"
-              />
-              <div className="retro-card is-green player-exp-card">
-                <div className="retro-card-title">EXP</div>
-                <div className="retro-card-note mono">[{generateProgressBar(playerLevel.expPercent, 26)}] {playerLevel.expPercent}%</div>
-                <div className="retro-card-note">User: @{displayUser} · Base: {user.location || 'Earth'}</div>
+            <div className="retro-card is-green player-profile-card">
+              <div className="player-info">
+                {user.avatar && (
+                  <div className="avatar-wrapper">
+                    <img src={user.avatar} alt={displayUser} className="retro-avatar player-avatar" />
+                  </div>
+                )}
+                <div className="player-details">
+                  <div className="player-header">
+                    <div className="retro-card-note player-username">@{displayUser}</div>
+                    <div className="player-level-badge">LV.{playerLevel.level.toString().padStart(2, '0')}</div>
+                  </div>
+                  <div className="retro-card-note">Department: {user.department}</div>
+                  <div className="retro-card-note">Location: {user.location || 'Earth'}</div>
+                  <div className="retro-card-note">Tenure: {tenure.years} years</div>
+                </div>
               </div>
             </div>
           </section>
@@ -137,12 +171,39 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
             <div className="section-title">GIT BATTLE LOG</div>
             <TerminalCommand className="git-command mb-4" text="> getdata --github --commits --prs" />
             <DataCardGroup items={gitCards} className="git-cards mb-4" />
-            <div className="retro-card is-blue git-monthly-card">
+            <div className="retro-card is-blue git-monthly-card mb-4">
               <div className="retro-card-title">2025 CONTRIBUTION ACTIVITY</div>
               <div className="contribution-wrapper">
                 <ContributionGrid data={contributionData} />
               </div>
               <TypewriterText className="retro-card-note git-narrative" initialText={gitNarrative} />
+            </div>
+            <div className="retro-card is-gold git-collaborators-card">
+              <div className="retro-card-title">CODING SQUAD</div>
+              <div className="git-collaborators">
+                {collaboratorsList
+                  .sort((a, b) => (b.prsTogether + b.reviewsExchanged) - (a.prsTogether + a.reviewsExchanged))
+                  .slice(0, 3)
+                  .map((collab, index) => {
+                    const messages = [
+                      <>must be your best coding buddy! Reviewed <span className="highlight-number">{collab.reviewsExchanged}</span> of your PRs like a boss.</>,
+                      <>is your partner in crime! <span className="highlight-number">{collab.prsTogether}</span> PRs shipped together - unstoppable duo.</>,
+                      <>got your back! <span className="highlight-number">{collab.reviewsExchanged}</span> reviews and <span className="highlight-number">{collab.prsTogether}</span> collabs - true teammate.</>
+                    ];
+                    return (
+                      <div key={collab.username + index} className="collab-story">
+                        {collab.avatar && (
+                          <div className="avatar-wrapper">
+                            <img src={collab.avatar} alt={collab.username} className="retro-avatar collab-avatar" />
+                          </div>
+                        )}
+                        <span className="collab-text">
+                          <span className="collab-name">@{collab.username}</span> {messages[index]}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           </section>
 

@@ -6,8 +6,8 @@ export interface UserInfo {
   joinDate: string;
   location?: string;
   role: string;
+  jobTitle: string;
   department?: string;
-  team?: string;
 }
 
 export interface CommitData {
@@ -68,8 +68,6 @@ export interface Framework {
 export interface TechStackData {
   languages: Language[];
   frameworks: Framework[];
-  totalPackages: number;
-  totalProjects: number;
 }
 
 export interface TicketStats {
@@ -118,7 +116,6 @@ export interface CopilotData {
   suggestionsAccepted: number;
   linesGenerated: number;
   activeDays: number;
-  chatSessions: number;
   timesSaved: string;
 }
 
