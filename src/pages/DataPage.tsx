@@ -146,7 +146,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
           <section className="retro-section player-section" style={{ opacity: 0, visibility: 'hidden' }}>
             <div className="section-title">PLAYER STATUS</div>
             <TerminalCommand className="player-command mb-4" text="> initialize --player --status" />
-            <div className="retro-card is-green player-profile-card">
+            <div className="retro-card is-blue player-profile-card">
               <div className="player-info">
                 {user.avatar && (
                   <div className="avatar-wrapper">
@@ -212,7 +212,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
             <div className="section-title">SKILL MATRIX</div>
             <TerminalCommand className="skills-command mb-4" text="> analyze --languages --frameworks" />
 
-            <div className="retro-card is-green mb-4">
+            <div className="retro-card is-blue mb-4">
               <div className="retro-card-title">LANGUAGES</div>
               <div className="space-y-2 language-bars">
                 {languageBars.map((lang, index) => (
@@ -237,7 +237,13 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
                 {frameworkBars.map((fw, index) => (
                   <div key={fw.label + index} className="stat-row">
                     <span className="label">{fw.label}</span>
-                    <span className="mono spark framework-bar" data-hours={fw.hours} data-bar={fw.bar}>{fw.bar}</span>
+                    <span
+                      className={clsx('mono spark framework-bar', fw.tone ? `tone-${fw.tone}` : null)}
+                      data-hours={fw.hours}
+                      data-bar={fw.bar}
+                    >
+                      {fw.bar}
+                    </span>
                     <span className="value">{fw.hours.toLocaleString()}h</span>
                   </div>
                 ))}
@@ -276,7 +282,11 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
                 {deliveryProjects.map((project, index) => (
                   <div key={project.label + index} className="stat-row">
                     <span className="label">{project.label}</span>
-                    <span className="mono spark project-bar" data-progress={project.percent} data-bar={project.bar}>
+                    <span
+                      className={clsx('mono spark project-bar', project.tone ? `tone-${project.tone}` : null)}
+                      data-progress={project.percent}
+                      data-bar={project.bar}
+                    >
                       {project.bar}
                     </span>
                     <span className="value">{project.percent}%</span>
@@ -291,7 +301,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
             <div className="section-title">BUILD & DEPLOY</div>
             <TerminalCommand className="cicd-command mb-4" text="> monitor --builds --deployments --pipelines" />
             <DataCardGroup items={cicdCards} className="cicd-cards mb-4" />
-            <div className="retro-card is-green">
+            <div className="retro-card is-gold">
               <div className="retro-card-title">BUILD SUCCESS RATE</div>
               <div className="stat-row">
                 <span className="label">{buildSuccessBar.label}</span>

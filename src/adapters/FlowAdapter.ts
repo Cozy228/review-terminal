@@ -1,7 +1,7 @@
 import type { WorkflowData, JiraData } from '../types';
 import { generateProgressBar } from '../utils/ascii';
 
-type Tone = 'green' | 'gold' | 'blue' | 'red';
+type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange';
 
 interface DeliveryCard {
   title: string;
@@ -14,6 +14,7 @@ interface ProjectProgress {
   label: string;
   percent: number;
   bar: string;
+  tone?: Tone;
 }
 
 export class FlowAdapter {
@@ -144,6 +145,9 @@ export class FlowAdapter {
   }
 
   static toProjectProgress(_: WorkflowData, jiraData?: JiraData): ProjectProgress[] {
+    // Color palette to cycle through for each project
+    const colors: Tone[] = ['blue', 'purple', 'pink', 'orange', 'gold', 'green', 'red'];
+
     // Use jira topProjects if available, otherwise use hardcoded defaults
     if (jiraData?.topProjects && jiraData.topProjects.length > 0) {
       // Calculate completion percentage based on jira tickets
@@ -151,23 +155,24 @@ export class FlowAdapter {
       const completedTickets = jiraData.tickets.completed;
       const baseCompletion = totalTickets > 0 ? Math.round((completedTickets / totalTickets) * 100) : 75;
 
-      // Create project progress with varied completion rates
+      // Create project progress with varied completion rates and colors
       return jiraData.topProjects.map((project, index) => {
         const variance = [-5, 0, 10][index % 3] ?? 0;
         const percent = Math.min(100, Math.max(0, baseCompletion + variance));
         return {
           label: project,
           percent,
-          bar: generateProgressBar(percent, 80)
+          bar: generateProgressBar(percent, 80),
+          tone: colors[index % colors.length]
         };
       });
     }
 
-    // Fallback to hardcoded projects
+    // Fallback to hardcoded projects with varied colors
     const projects: ProjectProgress[] = [
-      { label: 'Platform Modernization', percent: 100, bar: generateProgressBar(100, 80) },
-      { label: 'API Gateway', percent: 75, bar: generateProgressBar(75, 80) },
-      { label: 'Dashboard v2', percent: 52, bar: generateProgressBar(52, 80) },
+      { label: 'Platform Modernization', percent: 100, bar: generateProgressBar(100, 80), tone: 'blue' },
+      { label: 'API Gateway', percent: 75, bar: generateProgressBar(75, 80), tone: 'purple' },
+      { label: 'Dashboard v2', percent: 52, bar: generateProgressBar(52, 80), tone: 'pink' },
     ];
 
     return projects;

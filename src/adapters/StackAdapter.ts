@@ -1,7 +1,7 @@
 import type { TechStackData } from '../types';
 import { generateProgressBar } from '../utils/ascii';
 
-type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple';
+type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange';
 
 interface LanguageBar {
   label: string;
@@ -66,13 +66,19 @@ export class StackAdapter {
   static toLanguageBars(data: TechStackData): LanguageBar[] {
     return data.languages.map((lang) => {
       const percent = Math.round(lang.percentage);
-      let tone: Tone = 'green';
-      if (lang.name.toLowerCase().includes('script')) {
-        tone = 'gold';
-      } else if (lang.name.toLowerCase() === 'python') {
-        tone = 'blue';
-      } else if (lang.name.toLowerCase() === 'go') {
-        tone = 'purple';
+
+      // Color based on percentage - higher percentage = more prestigious color
+      let tone: Tone;
+      if (percent >= 40) {
+        tone = 'gold'; // Dominant language
+      } else if (percent >= 25) {
+        tone = 'purple'; // Significant usage
+      } else if (percent >= 15) {
+        tone = 'blue'; // Good presence
+      } else if (percent >= 8) {
+        tone = 'pink'; // Moderate usage
+      } else {
+        tone = 'green'; // Minor usage
       }
 
       return {
@@ -85,15 +91,27 @@ export class StackAdapter {
   }
 
   static toFrameworkUsage(data: TechStackData): FrameworkBar[] {
+    // Color based on usage ranking - most used gets best color
+    const getRankColor = (rank: number): Tone => {
+      switch (rank) {
+        case 0: return 'gold';    // #1 most used
+        case 1: return 'purple';  // #2
+        case 2: return 'blue';    // #3
+        case 3: return 'pink';    // #4
+        case 4: return 'green';   // #5
+        default: return 'green';  // #6+
+      }
+    };
+
     const maxHours = Math.max(...data.frameworks.map((f) => f.hours), 1);
-    return data.frameworks.map((framework) => {
+    return data.frameworks.map((framework, index) => {
       const percent = Math.round((framework.hours / maxHours) * 100);
       return {
         label: framework.name,
         hours: framework.hours,
         percent,
         bar: generateProgressBar(percent, 80),
-        tone: 'blue',
+        tone: getRankColor(index),
       };
     });
   }

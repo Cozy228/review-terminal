@@ -5,9 +5,11 @@
   --retro-border: #2f364a;
   --retro-border-strong: #4b5563;
   --retro-primary: #00ff41;
+  --retro-green-soft: #008F11;  /* Tailwind green-400 - less intense */
   --retro-gold: #facc15;
   --retro-blue: #3b82f6;
   --retro-red: #ef4444;
+  --retro-pink: #F48FB1;
   --retro-dim: #6b7280;
   --retro-rare: #3b82f6;
   --retro-epic: #a855f7;
@@ -51,7 +53,7 @@
 
 .command-line {
   font-size: 0.95rem;
-  color: var(--retro-primary);
+  color: #e6edf3;
   letter-spacing: 0.08em;
   display: inline-flex;
   align-items: center;
@@ -61,7 +63,7 @@
 .command-caret {
   width: 10px;
   height: 16px;
-  background: var(--retro-primary);
+  background: #e6edf3;
   animation: blink 1s steps(2, end) infinite;
 }
 
@@ -122,7 +124,7 @@
 }
 
 .retro-card.is-green .retro-card-value {
-  color: var(--retro-primary);
+  color: var(--retro-green-soft);
 }
 
 .retro-card.is-gold .retro-card-value {
@@ -139,6 +141,18 @@
 
 .retro-card.is-purple .retro-card-value {
   color: var(--retro-epic);
+}
+
+.retro-card.is-pink .retro-card-value {
+  color: var(--retro-pink);
+}
+
+.retro-card.is-orange .retro-card-value {
+  color: var(--retro-legendary);
+}
+
+.retro-card.is-primary .retro-card-value {
+  color: var(--retro-primary);
 }
 
 .data-grid {
@@ -179,7 +193,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--retro-primary);
+  background: var(--retro-green-soft);
   transition: width 1s steps(16);
 }
 
@@ -197,6 +211,18 @@
 
 .pixel-bar-fill.purple {
   background: var(--retro-epic);
+}
+
+.pixel-bar-fill.pink {
+  background: var(--retro-pink);
+}
+
+.pixel-bar-fill.orange {
+  background: var(--retro-legendary);
+}
+
+.pixel-bar-fill.primary {
+  background: var(--retro-primary);
 }
 
 .stat-row {
@@ -334,7 +360,7 @@
 
 
 .spark {
-  color: var(--retro-primary);
+  color: var(--retro-green-soft);
 }
 
 .tone-gold {
@@ -342,7 +368,7 @@
 }
 
 .tone-green {
-  color: var(--retro-primary);
+  color: var(--retro-green-soft);
 }
 
 .tone-blue {
@@ -355,6 +381,18 @@
 
 .tone-purple {
   color: var(--retro-epic);
+}
+
+.tone-pink {
+  color: var(--retro-pink);
+}
+
+.tone-orange {
+  color: var(--retro-legendary);
+}
+
+.tone-primary {
+  color: var(--retro-primary);
 }
 
 @keyframes blink {

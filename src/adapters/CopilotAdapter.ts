@@ -1,7 +1,7 @@
 import type { CopilotData } from '../types';
 import { generateProgressBar } from '../utils/ascii';
 
-type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple';
+type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange';
 
 interface StatCard {
   title: string;
@@ -48,11 +48,25 @@ export class CopilotAdapter {
   }
 
   static toAcceptanceBar(data: CopilotData): AcceptanceBar {
+    // Use varied colors instead of just green for high performance
+    let tone: Tone;
+    if (data.acceptanceRate >= 80) {
+      tone = 'pink'; // Exceptional AI synergy
+    } else if (data.acceptanceRate >= 65) {
+      tone = 'purple'; // Great AI pairing
+    } else if (data.acceptanceRate >= 50) {
+      tone = 'blue'; // Good acceptance
+    } else if (data.acceptanceRate >= 35) {
+      tone = 'gold'; // Moderate acceptance
+    } else {
+      tone = 'orange'; // Experimental phase
+    }
+
     return {
       label: 'Acceptance Rate',
       percent: data.acceptanceRate,
       bar: generateProgressBar(data.acceptanceRate, 80),
-      tone: data.acceptanceRate >= 60 ? 'green' : data.acceptanceRate >= 40 ? 'gold' : 'red'
+      tone
     };
   }
 

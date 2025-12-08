@@ -1,7 +1,7 @@
 import type { CICDData } from '../types';
 import { generateProgressBar } from '../utils/ascii';
 
-type Tone = 'green' | 'gold' | 'blue' | 'red';
+type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange';
 
 interface StatCard {
   title: string;
@@ -53,7 +53,7 @@ export class CICDAdapter {
       label: 'Build Success Rate',
       percent: successRate,
       bar: generateProgressBar(successRate, 80),
-      tone: successRate >= 90 ? 'green' : successRate >= 75 ? 'gold' : 'red'
+      tone: 'green'
     };
   }
 
