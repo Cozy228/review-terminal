@@ -1,0 +1,20 @@
+{
+  "name": "review-terminal-lambda",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AWS Lambda function for Review Terminal auth server",
+  "main": "handler.js",
+  "scripts": {
+    "package": "zip -r function.zip . -x '*.git*' '.pnpm-store/*' 'node_modules/.cache/*'",
+    "deploy": "pnpm package && aws lambda update-function-code --function-name review-terminal-auth --zip-file fileb://function.zip"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.600.0",
+    "hono": "^4.10.7",
+    "pino": "^10.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@10.24.0"
+}
