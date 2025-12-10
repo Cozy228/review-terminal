@@ -58,8 +58,6 @@ app.use('*', async (c, next) => {
       ms
     }, 'http request');
   }
-
-  await next();
 });
 
 // ============================================

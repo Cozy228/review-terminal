@@ -5,12 +5,12 @@ import { DataCard } from './DataCard';
 
 interface DataCardGroupProps {
   items: DataCardProps[];
-  columns?: 2 | 3;
+  columns?: 2 | 3 | 4;
   className?: string;
 }
 
 export const DataCardGroup: React.FC<DataCardGroupProps> = ({ items, columns = 2, className }) => {
-  const gridClass = columns === 3 ? 'grid-three' : 'grid-two';
+  const gridClass = columns === 4 ? 'grid-four' : columns === 3 ? 'grid-three' : 'grid-two';
   return (
     <div className={clsx('data-grid', gridClass, className)}>
       {items.map((item, index) => (

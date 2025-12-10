@@ -6,23 +6,30 @@ import {
   ASCII_STATESTREET,
 } from "../constants/ascii-art";
 
-interface IdlePageProps {
+interface ExecutiveEntryPageProps {
   cursorRef: React.RefObject<HTMLSpanElement | null>;
+  onEmailSubmit?: (email: string) => void;
   statusMessage?: string | null;
   errorMessage?: string | null;
   isBusy?: boolean;
-  isAuthEnabled?: boolean;
 }
 
-export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
-  ({ cursorRef, statusMessage, errorMessage, isBusy, isAuthEnabled = true }, ref) => {
+export const ExecutiveEntryPage = forwardRef<HTMLDivElement, ExecutiveEntryPageProps>(
+  ({ cursorRef, onEmailSubmit, statusMessage, errorMessage, isBusy }, ref) => {
     const [doneCount, setDoneCount] = useState(0);
+    const [email, setEmail] = useState('');
     const titlesDone = useMemo(() => doneCount >= 1, [doneCount]);
     const promptOpacity = titlesDone ? 1 : 0;
 
     const handleSegmentComplete = useCallback(() => {
       setDoneCount((prev) => prev + 1);
     }, []);
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && !isBusy && onEmailSubmit) {
+        onEmailSubmit(email); // Can be empty for demo
+      }
+    }, [email, isBusy, onEmailSubmit]);
 
     const { headerAscii, lineColors } = useMemo(() => {
       const segments = [
@@ -77,26 +84,50 @@ export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
               transitionDelay: titlesDone ? "0.3s" : "0s",
             }}
           >
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex items-baseline gap-2">
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-sm" style={{ color: 'var(--accent-highlight)' }}>
+                [ EXECUTIVE DASHBOARD ACCESS ]
+              </div>
+
+              <div className="flex items-center gap-2">
                 <span>
                   {isBusy
-                    ? statusMessage || "[ Working... ]"
-                    : isAuthEnabled
-                    ? "[ Press ENTER to Initialize System ]"
-                    : "[ Press ENTER to Load Demo Data ]"}
+                    ? statusMessage || "[ Loading... ]"
+                    : "> Enter email:"}
                 </span>
+                {!isBusy && (
+                  <input
+                    type="text"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    placeholder="user@example.com"
+                    className="bg-transparent border-none outline-none font-mono"
+                    style={{
+                      color: 'var(--text-primary)',
+                      width: '280px',
+                      borderBottom: '1px solid var(--accent-info)',
+                      paddingBottom: '2px',
+                    }}
+                  />
+                )}
                 <span
                   ref={cursorRef}
                   style={{
-                    width: "0.5ch", // 宽度等于当前字体一个字符的宽 (0)
-                    height: "1em", // 高度等于当前字号
-                    backgroundColor: "var(--text-primary)", // 黑客帝国绿 (或者用 'currentColor' 跟随文字)
-                    marginLeft: "2px", // 稍微跟文字拉开一点点距离
+                    width: "0.5ch",
+                    height: "1em",
+                    backgroundColor: "var(--text-primary)",
+                    marginLeft: "2px",
                     transform: "translateY(0.2em)",
                   }}
                 />
               </div>
+
+              <div className="text-sm" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+                [ Press ENTER to continue ]
+              </div>
+
               {errorMessage && (
                 <div
                   className="text-sm text-center"
@@ -113,4 +144,4 @@ export const IdlePage = forwardRef<HTMLDivElement, IdlePageProps>(
   }
 );
 
-IdlePage.displayName = "IdlePage";
+ExecutiveEntryPage.displayName = "ExecutiveEntryPage";

@@ -2,7 +2,6 @@ import { forwardRef } from 'react';
 import { Check } from 'lucide-react';
 
 interface AuthPageProps {
-  username: string;
   authStage: 'redirecting' | 'loading';
   authError?: string | null;
   authDataReady?: boolean;
@@ -10,8 +9,7 @@ interface AuthPageProps {
 }
 
 export const AuthPage = forwardRef<HTMLDivElement, AuthPageProps>(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ({ authStage, authError, authDataReady, onRetry, username: _username }, ref) => {
+  ({ authStage, authError, authDataReady, onRetry }, ref) => {
     const showRedirect = authStage === 'redirecting';
     const showPacman = authStage === 'loading';
 

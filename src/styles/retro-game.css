@@ -10,6 +10,8 @@
   --retro-blue: #3b82f6;
   --retro-red: #ef4444;
   --retro-pink: #F48FB1;
+  --retro-purple: #a78bfa;  /* Light purple for dark backgrounds */
+  --retro-orange: #fb923c;  /* Orange for variety */
   --retro-dim: #6b7280;
   --retro-rare: #3b82f6;
   --retro-epic: #a855f7;
@@ -166,6 +168,10 @@
 
 .grid-three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .ascii-plot {
@@ -380,7 +386,7 @@
 }
 
 .tone-purple {
-  color: var(--retro-epic);
+  color: var(--retro-purple);
 }
 
 .tone-pink {
@@ -388,7 +394,7 @@
 }
 
 .tone-orange {
-  color: var(--retro-legendary);
+  color: var(--retro-orange);
 }
 
 .tone-primary {

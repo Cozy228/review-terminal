@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Deploy folder exclusions
+deploy/lambda/node_modules/
+deploy/lambda/.pnpm-store/
+deploy/lambda/function.zip
+deploy/docker/build/

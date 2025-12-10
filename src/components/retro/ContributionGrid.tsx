@@ -36,7 +36,7 @@ export const ContributionGrid = forwardRef<ContributionGridRefs, ContributionGri
             data-month={monthData.month}
           >
             <div
-              ref={(el) => (blockRefs.current[index] = el)}
+              ref={(el) => { blockRefs.current[index] = el; }}
               className={clsx('contrib-block', `level-${monthData.level}`)}
               title={`${monthData.month}: ${monthData.count} commits`}
               data-level={monthData.level}
@@ -45,7 +45,7 @@ export const ContributionGrid = forwardRef<ContributionGridRefs, ContributionGri
               <span className="contrib-count">{monthData.count}</span>
             </div>
             <div
-              ref={(el) => (labelRefs.current[index] = el)}
+              ref={(el) => { labelRefs.current[index] = el; }}
               className="contrib-label"
             >
               {monthData.month}

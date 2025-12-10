@@ -1,4 +1,3 @@
-import plot from 'simple-ascii-chart';
 import type { GitData, ContributionGridData, MonthContributionData } from '../types';
 
 type StatTone = 'green' | 'gold' | 'blue' | 'red' | 'pink' | 'purple' | 'orange';
@@ -11,32 +10,6 @@ interface StatCard {
 }
 
 export class GitAdapter {
-  static toCommitChart(data: GitData): string {
-    const commits = data.commits;
-    
-    // Prepare data for simple-ascii-chart - line chart with [x, y] points
-    const chartData = commits.map((c, index) => {
-      return [index + 1, c.count] as [number, number];
-    });
-    
-    // Create line chart
-    const chart = plot(chartData, {
-      title: 'Commit Velocity (2025)',
-      width: 60,
-      height: 10,
-      formatter: (n: number, { axis }) => {
-        if (axis === 'y') return n.toString();
-        // Map x values back to month names
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthIndex = parseInt(commits[n - 1]?.date.split('-')[1] || '1') - 1;
-        return monthNames[monthIndex] || '';
-      }
-    });
-    
-    // Remove ANSI color codes from output
-    // eslint-disable-next-line no-control-regex
-    return chart.replace(/\x1b\[[0-9;]*m/g, '');
-  }
 
   static formatStats(data: GitData): string[] {
     return [

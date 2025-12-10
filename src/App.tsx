@@ -11,6 +11,7 @@ import { WindowChrome } from './components/WindowChrome';
 import { IdlePage } from './pages/IdlePage';
 import { DataPage } from './pages/DataPage';
 import { ExecutiveDataPage } from './pages/ExecutiveDataPage';
+import { ExecutiveEntryPage } from './pages/ExecutiveEntryPage';
 import { AuthCallback } from './pages/AuthCallback';
 import { mockReviewData } from './data/mockData';
 import type { AnimationPhase, TerminalStatus } from './types';
@@ -33,6 +34,7 @@ function App() {
   const idlePageRef = useRef<HTMLDivElement>(null);
   const dataPageRef = useRef<HTMLDivElement>(null);
   const execPageRef = useRef<HTMLDivElement>(null);
+  const execEntryPageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLSpanElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const userScrollingRef = useRef(false);
@@ -40,9 +42,14 @@ function App() {
   const dataLenisTickerRef = useRef<((time: number) => void) | null>(null);
   const dataLenisProgressHandlerRef = useRef<((instance: Lenis) => void) | null>(null);
   const dataDelayTimerRef = useRef<number | null>(null);
+  const execLenisRef = useRef<Lenis | null>(null);
+  const execLenisTickerRef = useRef<((time: number) => void) | null>(null);
+  const execLenisProgressHandlerRef = useRef<((instance: Lenis) => void) | null>(null);
   const [authStatus, setAuthStatus] = useState<'idle' | 'auth' | 'loading' | 'error'>('idle');
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
+  const [execEmail, setExecEmail] = useState<string>('');
+  const [execEntryStatus, setExecEntryStatus] = useState<'idle' | 'loading'>('idle');
 
   const scrollToModule = useCallback((selector: string) => {
     const container = dataPageRef.current;
@@ -260,7 +267,70 @@ function App() {
     setScrollProgress(0);
   }, [teardownDataScroll]);
 
+  const scrollToExecModule = useCallback((selector: string) => {
+    const container = execPageRef.current;
+    if (!container) return;
+    userScrollingRef.current = false;
+
+    const target = container.querySelector<HTMLElement>(selector);
+    if (!target) return;
+
+    const lenis = execLenisRef.current;
+    const content = container.querySelector<HTMLElement>('.exec-scroll-content');
+
+    const centerScrollPos = () => {
+      if (!content) return 0;
+
+      const targetRect = target.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      const targetTopInContent = targetRect.top - contentRect.top;
+      const containerHeight = container.clientHeight;
+
+      return targetTopInContent - (containerHeight * 0.3);
+    };
+
+    requestAnimationFrame(() => {
+      const destination = Math.max(0, centerScrollPos());
+
+      if (lenis) {
+        lenis.scrollTo(destination, {
+          duration: 1.2,
+          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        });
+        return;
+      }
+      const updateProgress = () => {
+        const scrollHeight = container.scrollHeight - container.clientHeight;
+        setScrollProgress(scrollHeight > 0 ? container.scrollTop / scrollHeight : 0);
+      };
+
+      gsap.killTweensOf(container);
+      gsap.to(container, {
+        scrollTo: { y: destination, autoKill: true },
+        duration: 1.2,
+        ease: 'power2.inOut',
+        overwrite: true,
+        onUpdate: updateProgress,
+        onComplete: () => {
+          userScrollingRef.current = false;
+          updateProgress();
+        }
+      });
+    });
+  }, []);
+
   const teardownExecutiveScroll = useCallback(() => {
+    if (execLenisRef.current) {
+      if (execLenisProgressHandlerRef.current) {
+        execLenisRef.current.off('scroll', execLenisProgressHandlerRef.current);
+      }
+      execLenisRef.current.destroy();
+      execLenisRef.current = null;
+    }
+    if (execLenisTickerRef.current) {
+      gsap.ticker.remove(execLenisTickerRef.current);
+      execLenisTickerRef.current = null;
+    }
   }, []);
 
   const setupExecutiveScroll = useCallback(() => {
@@ -268,60 +338,194 @@ function App() {
     if (!container) return;
 
     teardownExecutiveScroll();
+
+    const content = container.querySelector<HTMLElement>('.exec-scroll-content');
+    const lenis = new Lenis({
+      wrapper: container,
+      content: content || container,
+      autoRaf: false,
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true
+    });
+    execLenisRef.current = lenis;
+
+    const onProgress = (instance: Lenis) => setScrollProgress(instance.progress ?? 0);
+    execLenisProgressHandlerRef.current = onProgress;
+    lenis.on('scroll', onProgress);
+
+    const ticker = (time: number) => lenis.raf(time * 1000);
+    execLenisTickerRef.current = ticker;
+    gsap.ticker.add(ticker);
+    gsap.ticker.lagSmoothing(0);
+
+    lenis.scrollTo(0, { immediate: true });
+    setScrollProgress(0);
+
     setExecShowMenu(false);
     setPhase('git');
     setStatus('LOADING...');
-    setScrollProgress(0);
 
-    const modules = container.querySelectorAll<HTMLElement>('.exec-module');
-    gsap.set(modules, { opacity: 1, y: 0, visibility: 'visible' });
+    // Reset all sections to hidden - scope to exec page only
+    const sections = [
+      '.exec-scroll-content .header-section',
+      '.exec-scroll-content .delivery-section',
+      '.exec-scroll-content .quality-section',
+      '.exec-scroll-content .cicd-section',
+      '.exec-scroll-content .jira-section',
+      '.exec-scroll-content .community-section',
+      '.exec-scroll-content .ai-section',
+      '.exec-scroll-content .summary-section'
+    ];
+    gsap.set(sections, { opacity: 0, visibility: 'hidden', y: 12 });
 
-    const sections = container.querySelectorAll<HTMLElement>('.exec-header, .exec-dimension-header, .exec-section, .exec-menu-section');
-    sections.forEach(section => {
-      gsap.set(section, { opacity: 0, y: 24, visibility: 'hidden' });
+    // Hide all data cards initially within exec page only
+    gsap.set('.exec-scroll-content .header-section .retro-card', { opacity: 0, visibility: 'visible' });
+    gsap.set('.exec-scroll-content .delivery-section .retro-card', { opacity: 0, visibility: 'visible' });
+    gsap.set('.exec-scroll-content .quality-section .retro-card', { opacity: 0, visibility: 'visible' });
+    gsap.set('.exec-scroll-content .cicd-section .retro-card', { opacity: 0, visibility: 'visible' });
+    gsap.set('.exec-scroll-content .jira-section .retro-card', { opacity: 0, visibility: 'visible' });
+    gsap.set('.exec-scroll-content .community-section .retro-card', { opacity: 0, visibility: 'visible' });
+    gsap.set('.exec-scroll-content .ai-section .retro-card', { opacity: 0, visibility: 'visible' });
+
+    gsap.set(
+      [
+        '.exec-scroll-content .header-command .command-text',
+        '.exec-scroll-content .delivery-command .command-text',
+        '.exec-scroll-content .quality-command .command-text',
+        '.exec-scroll-content .cicd-command .command-text',
+        '.exec-scroll-content .jira-command .command-text',
+        '.exec-scroll-content .community-command .command-text',
+        '.exec-scroll-content .ai-command .command-text',
+      ],
+      { text: '' }
+    );
+    gsap.set(
+      [
+        '.exec-scroll-content .header-command',
+        '.exec-scroll-content .delivery-command',
+        '.exec-scroll-content .quality-command',
+        '.exec-scroll-content .cicd-command',
+        '.exec-scroll-content .jira-command',
+        '.exec-scroll-content .community-command',
+        '.exec-scroll-content .ai-command'
+      ],
+      { attr: { 'data-active': 'true' } }
+    );
+
+    // Initialize progress bars for executive page
+    const execBarSelectors = [
+      '.build-success-bar',
+      '.completion-bar',
+      '.ai-adoption-bar',
+      '.acceptance-bar'
+    ];
+    execBarSelectors.forEach((selector) => {
+      gsap.utils.toArray<HTMLElement>(selector).forEach((el) => {
+        const finalBar = el.dataset.bar || el.textContent || '';
+        (el as HTMLElement).dataset.finalBar = finalBar;
+        (el as HTMLElement).textContent = finalBar ? '░'.repeat(finalBar.length) : '';
+      });
     });
 
-    container.scrollTop = 0;
+    // Hide progress bar values initially
+    gsap.set('.exec-scroll-content .stat-row .value', { opacity: 0 });
 
-    gsap.to(sections, {
-      opacity: 1,
-      y: 0,
-      visibility: 'visible',
-      duration: 1.2,
-      ease: 'power2.out',
-      stagger: 0.1
-    });
-  }, [teardownExecutiveScroll]);
-
-  // Executive mode animation
-  const startExecutiveAnimation = useCallback(() => {
-    teardownDataScroll();
-    setIsExecutiveMode(true);
-    setPhase('git');
-    setStatus('PROCESSING...');
-    setExecShowMenu(false);
-    
+    // Create timeline for sequential animations
     const tl = gsap.timeline();
-    timelineRef.current = tl;
-    
-    // Hide idle page
-    if (idlePageRef.current) {
-      tl.to(idlePageRef.current, { opacity: 0, duration: 0.3 })
-        .set(idlePageRef.current, { display: 'none' });
-    }
-    
-    // Show executive page
-    if (execPageRef.current) {
-      tl.set(execPageRef.current, { display: 'block', opacity: 0 });
-      execPageRef.current.scrollTop = 0;
-      userScrollingRef.current = false;
-      tl.to(execPageRef.current, { opacity: 1, duration: 0.4 });
-    }
-    
-    tl.add(() => setupExecutiveScroll());
 
-    tl.play();
-  }, [setupExecutiveScroll, teardownDataScroll]);
+    // Header Section (includes BasicsSection with 4 cards)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .header-section'))
+      .set('.exec-scroll-content .header-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .header-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .header-command .command-text', { text: '> initialize --executive --dashboard', duration: 1.2, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .header-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .header-section .basics-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.3');
+
+    // Delivery Section (primary cards, secondary cards, monthly trends, vendor quadrant)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .delivery-section'), '+=1.2')
+      .set('.exec-scroll-content .delivery-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .delivery-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .delivery-command .command-text', { text: '> analyze --velocity --leadtime --vendors', duration: 1.0, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .delivery-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .delivery-section .delivery-primary-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.3')
+      .to('.exec-scroll-content .delivery-section .delivery-secondary-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.5')
+      .add(() => scrollToExecModule('.exec-scroll-content .delivery-section .retro-card.is-blue'), '+=1.5')
+      .to('.exec-scroll-content .delivery-section .retro-card.is-blue', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3')
+      .add(() => scrollToExecModule('.exec-scroll-content .delivery-section .retro-card.is-gold'), '+=1.2')
+      .to('.exec-scroll-content .delivery-section .retro-card.is-gold', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.3');
+
+    // Quality Section (2 gauge cards in grid-two)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .quality-section'), '+=1.2')
+      .set('.exec-scroll-content .quality-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .quality-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .quality-command .command-text', { text: '> analyze --quality --sla --pr-success', duration: 1.0, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .quality-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .quality-section .grid-two .retro-card', { opacity: 1, duration: 0.8, stagger: 0.4, ease: 'power1.out' }, '+=0.3');
+
+    // CI/CD Section (2 cards + 1 build success bar card)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .cicd-section'), '+=1.2')
+      .set('.exec-scroll-content .cicd-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .cicd-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .cicd-command .command-text', { text: '> monitor --builds --deployments --pipelines', duration: 1.0, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .cicd-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .cicd-section .cicd-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.3')
+      .to('.exec-scroll-content .cicd-section .retro-card.is-gold', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.5');
+
+    // Animate build success bar (starts immediately after card appears)
+    animateBarText(tl, '.build-success-bar');
+    animateBarValues(tl, '.build-success-bar');
+
+    // Jira Section (2 cards + 1 completion bar card)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .jira-section'), '+=1.2')
+      .set('.exec-scroll-content .jira-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .jira-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .jira-command .command-text', { text: '> getdata --jira --tickets --epics', duration: 1.0, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .jira-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .jira-section .jira-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.3')
+      .to('.exec-scroll-content .jira-section .retro-card.is-blue', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.5');
+
+    // Animate completion bar
+    animateBarText(tl, '.completion-bar');
+    animateBarValues(tl, '.completion-bar');
+
+    // Community Section (3 cards)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .community-section'), '+=1.2')
+      .set('.exec-scroll-content .community-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .community-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .community-command .command-text', { text: '> getdata --community --collaboration', duration: 1.0, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .community-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .community-section .community-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.3');
+
+    // AI Section (4 cards + 2 bar cards)
+    tl.add(() => scrollToExecModule('.exec-scroll-content .ai-section'), '+=1.2')
+      .set('.exec-scroll-content .ai-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .ai-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .to('.exec-scroll-content .ai-command .command-text', { text: '> analyze --ai --productivity --impact', duration: 1.0, ease: 'none' }, '+=0.2')
+      .add(() => { gsap.set('.exec-scroll-content .ai-command', { attr: { 'data-active': 'false' } }); }, '+=0.2')
+      .to('.exec-scroll-content .ai-section .ai-cards .retro-card', { opacity: 1, duration: 0.8, stagger: 0.35, ease: 'power1.out' }, '+=0.3')
+      .to('.exec-scroll-content .ai-section .retro-card.is-purple', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.5');
+
+    // Animate AI adoption bar
+    animateBarText(tl, '.ai-adoption-bar');
+    animateBarValues(tl, '.ai-adoption-bar');
+
+    tl.to('.exec-scroll-content .ai-section .retro-card.is-gold', { opacity: 1, duration: 0.8, ease: 'power1.out' }, '+=0.5');
+
+    // Animate acceptance bar
+    animateBarText(tl, '.acceptance-bar');
+    animateBarValues(tl, '.acceptance-bar');
+
+    // Summary Section
+    tl.add(() => scrollToExecModule('.exec-scroll-content .summary-section'), '+=1')
+      .set('.exec-scroll-content .summary-section', { visibility: 'visible' }, '+=0.2')
+      .to('.exec-scroll-content .summary-section', { opacity: 1, y: 0, duration: 0.8, ease: 'steps(10)' })
+      .add(() => {
+        setPhase('summary');
+        setStatus('READY');
+        setExecShowMenu(true);
+      });
+  }, [teardownExecutiveScroll, scrollToExecModule, animateBarText, animateBarValues]);
 
   const replayExecAnimation = useCallback(() => {
     if (execPageRef.current) {
@@ -331,9 +535,43 @@ function App() {
     setPhase('git');
     setStatus('PROCESSING...');
     setExecShowMenu(false);
-    
+
     setupExecutiveScroll();
   }, [setupExecutiveScroll]);
+
+  const handleExecutiveEmailSubmit = useCallback((email: string) => {
+    setExecEmail(email);
+    setExecEntryStatus('loading');
+    setStatus('LOADING...');
+
+    // Fade out entry page
+    if (execEntryPageRef.current) {
+      gsap.to(execEntryPageRef.current, {
+        opacity: 0,
+        duration: 0.3,
+        onComplete: () => {
+          // After entry page fades out, mount executive page
+          setIsExecutiveMode(true);
+          setExecEntryStatus('idle');
+        }
+      });
+    }
+  }, []);
+
+  // Separate effect to handle executive page fade in after it mounts
+  useEffect(() => {
+    if (isExecutiveMode && execPageRef.current) {
+      const container = execPageRef.current;
+      container.scrollTop = 0;
+      userScrollingRef.current = false;
+      gsap.set(container, { opacity: 0 });
+      gsap.to(container, {
+        opacity: 1,
+        duration: 0.4,
+        onComplete: setupExecutiveScroll
+      });
+    }
+  }, [isExecutiveMode, setupExecutiveScroll]);
 
   const startDataTimeline = useCallback((isReplay: boolean = false) => {
     if (dataDelayTimerRef.current) {
@@ -577,20 +815,17 @@ function App() {
     setDisplayUser('guest');
     setIsExecutiveMode(false);
     setExecShowMenu(false);
+    setExecEmail('');
+    setExecEntryStatus('idle');
     setAuthStatus('idle');
     setAuthMessage(null);
     setAuthErrorMessage(null);
     resetAuth();
     resetRetroModules();
-    
-    if (execPageRef.current) {
-      gsap.set(execPageRef.current, { display: 'none' });
-    }
-    if (dataPageRef.current) {
-      gsap.set(dataPageRef.current, { display: 'none' });
-    }
-    if (idlePageRef.current) {
-      gsap.set(idlePageRef.current, { display: 'flex', opacity: 1 });
+
+    // Navigate back to home if on executive route
+    if (window.location.pathname === '/executive') {
+      window.history.pushState({}, '', '/');
     }
   }, [resetAuth, resetRetroModules, teardownExecutiveScroll]);
 
@@ -725,9 +960,8 @@ function App() {
             // Skip auth and go directly to data timeline
             handleAuthComplete(null);
           }
-        } else if (e.key === 'e' || e.key === 'E') {
-          startExecutiveAnimation();
         }
+        // Note: 'E' key functionality removed - executive mode now accessed via /executive route
       } else if (phase === 'summary') {
         if (e.key === 'r' || e.key === 'R') {
           if (isExecutiveMode) {
@@ -743,11 +977,12 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [phase, isExecutiveMode, isAuthEnabled, startAuthFlow, handleAuthComplete, startExecutiveAnimation, replayExecAnimation, resetToIdle, startDataTimeline]);
+  }, [phase, isExecutiveMode, isAuthEnabled, startAuthFlow, handleAuthComplete, replayExecAnimation, resetToIdle, startDataTimeline]);
 
   const showScrollbar = phase !== 'idle' && phase !== 'auth';
 
   const isAuthCallbackRoute = window.location.pathname === (import.meta.env.VITE_AUTH_CALLBACK_PATH || '/auth/callback');
+  const isExecutiveRoute = window.location.pathname === '/executive';
 
   if (isAuthCallbackRoute) {
     return <AuthCallback />;
@@ -755,29 +990,43 @@ function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
-      <WindowChrome username={isExecutiveMode ? 'executive' : displayUser} />
-      <IdlePage
-        ref={idlePageRef}
-        cursorRef={cursorRef}
-        onExecutiveMode={startExecutiveAnimation}
-        statusMessage={authMessage}
-        errorMessage={authErrorMessage}
-        isBusy={authStatus === 'auth' || authStatus === 'loading'}
-        isAuthEnabled={isAuthEnabled}
-      />
-      <DataPage 
-        ref={dataPageRef}
-        displayUser={displayUser}
-        reviewData={mockReviewData}
-        showMenu={showMenu}
-        onReplay={() => startDataTimeline(true)}
-      />
-      <ExecutiveDataPage
-        ref={execPageRef}
-        showMenu={execShowMenu}
-        onReplay={replayExecAnimation}
-        onBack={resetToIdle}
-      />
+      <WindowChrome username={isExecutiveMode ? (execEmail || 'executive') : displayUser} />
+      {!isExecutiveRoute ? (
+        <IdlePage
+          ref={idlePageRef}
+          cursorRef={cursorRef}
+          statusMessage={authMessage}
+          errorMessage={authErrorMessage}
+          isBusy={authStatus === 'auth' || authStatus === 'loading'}
+          isAuthEnabled={isAuthEnabled}
+        />
+      ) : (
+        <ExecutiveEntryPage
+          ref={execEntryPageRef}
+          cursorRef={cursorRef}
+          onEmailSubmit={handleExecutiveEmailSubmit}
+          statusMessage={execEntryStatus === 'loading' ? 'Loading executive dashboard...' : null}
+          errorMessage={null}
+          isBusy={execEntryStatus === 'loading'}
+        />
+      )}
+      {!isExecutiveMode && (
+        <DataPage
+          ref={dataPageRef}
+          displayUser={displayUser}
+          reviewData={mockReviewData}
+          showMenu={showMenu}
+          onReplay={() => startDataTimeline(true)}
+        />
+      )}
+      {isExecutiveMode && (
+        <ExecutiveDataPage
+          ref={execPageRef}
+          showMenu={execShowMenu}
+          onReplay={replayExecAnimation}
+          onBack={resetToIdle}
+        />
+      )}
 
       {showScrollbar && <ASCIIScrollbar scrollProgress={scrollProgress} />}
       <StatusBar status={status} />

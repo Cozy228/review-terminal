@@ -1,7 +1,7 @@
 import type React from 'react';
 import clsx from 'clsx';
 
-export type CardTone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange';
+export type CardTone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange' | 'primary';
 
 export interface DataCardProps {
   title: string;
