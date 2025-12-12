@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        # Build-time (baked into the Vite bundle). Keep these PUBLIC.
+        VITE_API_BASE: ${VITE_API_BASE:-/}
+        VITE_GHE_BASE_URL: ${VITE_GHE_BASE_URL:-https://github.com}
+        VITE_AUTH_CALLBACK_PATH: ${VITE_AUTH_CALLBACK_PATH:-/auth/callback}
+        VITE_AUTH_ENABLED: ${VITE_AUTH_ENABLED:-true}
+    ports:
+      - "8080:8080"
+    environment:
+      # Runtime (server-only). Do NOT put these into VITE_*.
+      NODE_ENV: production
+      PORT: 8080
+
+      # OAuth / server config
+      # FRONTEND_BASE_URL should be the public URL of this service (used for redirect target base).
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
+      GHE_BASE_URL: ${GHE_BASE_URL:-https://github.com}
+      GHE_CLIENT_ID: ${GHE_CLIENT_ID:-}
+      GHE_CLIENT_SECRET: ${GHE_CLIENT_SECRET:-}
+      AUTH_REDIRECT_URI: ${AUTH_REDIRECT_URI:-http://localhost:8080/auth/github-enterprise/callback}
+      VITE_AUTH_CALLBACK_PATH: ${VITE_AUTH_CALLBACK_PATH:-/auth/callback}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    # Optional: put secrets and runtime envs in a local file (not baked into image layers).
+    # env_file:
+    #   - ./.env.runtime
+    init: true
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+

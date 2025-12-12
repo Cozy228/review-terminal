@@ -1,12 +1,10 @@
 /**
- * Production Server for Review Terminal
- *
- * This server runs in a Docker container and serves:
- * - Static frontend files from /dist
+ * Production server that serves:
+ * - Static frontend files from ./dist (with precompressed .br/.gz support)
  * - Auth API endpoints on /auth/*
  * - Health check endpoint on /healthz
  *
- * All on a single port (8080) for simplified deployment
+ * All on a single port for simplified deployment.
  */
 
 import { Hono } from 'hono';
@@ -15,78 +13,73 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { getCookie, setCookie } from 'hono/cookie';
 import pino from 'pino';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Initialize logger
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-
-// Initialize Hono app
 const app = new Hono();
 
-// Configuration
 const port = Number(process.env.PORT || 8080);
 const scope = 'read:user user:email';
-const gheBaseUrl = process.env.GHE_BASE_URL || 'https://github.com';
-const frontendBaseUrl = process.env.FRONTEND_BASE_URL || `http://localhost:${port}`;
 
-logger.info({
-  PORT: port,
-  NODE_ENV: process.env.NODE_ENV,
-  GHE_BASE_URL: gheBaseUrl,
-  FRONTEND_BASE_URL: frontendBaseUrl,
-  AUTH_REDIRECT_URI: process.env.AUTH_REDIRECT_URI,
-  CLIENT_ID_PRESENT: !!process.env.GHE_CLIENT_ID,
-}, 'Production server starting');
+const distDir = join(process.cwd(), 'dist');
+const indexHtmlPath = join(distDir, 'index.html');
+let cachedIndexHtml = null;
 
-// Logging middleware
+try {
+  cachedIndexHtml = readFileSync(indexHtmlPath, 'utf-8');
+} catch (error) {
+  logger.warn({ error, indexHtmlPath }, 'index.html not readable at startup');
+}
+
+logger.info(
+  {
+    PORT: port,
+    NODE_ENV: process.env.NODE_ENV,
+    DIST_DIR: distDir,
+    GHE_BASE_URL: process.env.GHE_BASE_URL,
+    AUTH_REDIRECT_URI: process.env.AUTH_REDIRECT_URI,
+    CLIENT_ID_PRESENT: !!process.env.GHE_CLIENT_ID,
+  },
+  'Production server starting'
+);
+
 app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
   const ms = Date.now() - start;
 
-  // Only log non-static file requests to reduce noise
   if (!c.req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
-    logger.info({
-      method: c.req.method,
-      path: c.req.path,
-      status: c.res.status,
-      ms
-    }, 'http request');
+    logger.info(
+      {
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        ms,
+      },
+      'http request'
+    );
   }
 });
 
-// ============================================
-// API Routes
-// ============================================
+app.get('/healthz', (c) => c.text('ok'));
 
-// Health check endpoint (for Docker healthcheck and load balancers)
-app.get('/healthz', (c) => {
-  return c.text('ok');
-});
-
-// GitHub Enterprise OAuth authorize endpoint
 app.get('/auth/github-enterprise/authorize', (c) => {
-  const baseUrl = gheBaseUrl;
+  const baseUrl = process.env.GHE_BASE_URL || 'https://github.com';
   const clientId = process.env.GHE_CLIENT_ID || '';
-  const redirectUri = process.env.AUTH_REDIRECT_URI || `http://localhost:${port}/auth/github-enterprise/callback`;
 
-  // Generate and store state for CSRF protection
+  const origin = new URL(c.req.url).origin;
+  const redirectUri =
+    process.env.AUTH_REDIRECT_URI || `${origin}/auth/github-enterprise/callback`;
+
   const state = crypto.randomUUID();
-
   setCookie(c, 'ghe_state', state, {
     httpOnly: true,
     sameSite: 'Lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 300, // 5 minutes
+    maxAge: 300,
   });
 
-  // Build OAuth authorization URL
   const url = new URL(`${baseUrl}/login/oauth/authorize`);
   url.searchParams.set('client_id', clientId);
   url.searchParams.set('redirect_uri', redirectUri);
@@ -98,25 +91,23 @@ app.get('/auth/github-enterprise/authorize', (c) => {
     return c.json({ error: 'missing_client_id' }, 400);
   }
 
-  logger.info({
-    redirectUri,
-    baseUrl,
-    clientId_present: !!clientId
-  }, 'generated authorize url');
-
+  logger.info(
+    { redirectUri, baseUrl, clientId_present: !!clientId },
+    'generated authorize url'
+  );
   return c.json({ url: url.toString() });
 });
 
-// GitHub Enterprise OAuth callback endpoint
 app.get('/auth/github-enterprise/callback', async (c) => {
   const reqUrl = new URL(c.req.url);
   const incomingState = reqUrl.searchParams.get('state');
   const code = reqUrl.searchParams.get('code');
   const error = reqUrl.searchParams.get('error') || '';
   const storedState = getCookie(c, 'ghe_state');
-  const frontendBase = frontendBaseUrl;
-  const callbackPath = process.env.VITE_AUTH_CALLBACK_PATH || '/auth/callback';
 
+  const origin = new URL(c.req.url).origin;
+  const frontendBase = process.env.FRONTEND_BASE_URL || origin;
+  const callbackPath = process.env.VITE_AUTH_CALLBACK_PATH || '/auth/callback';
   const target = new URL(callbackPath, frontendBase);
 
   if (error) {
@@ -125,9 +116,8 @@ app.get('/auth/github-enterprise/callback', async (c) => {
     logger.warn({ incomingState, storedState }, 'OAuth state mismatch');
     target.searchParams.set('error', 'state_mismatch');
   } else if (code) {
-    // Exchange code for access token
     try {
-      const gheBase = gheBaseUrl;
+      const gheBase = process.env.GHE_BASE_URL || 'https://github.com';
       const clientId = process.env.GHE_CLIENT_ID;
       const clientSecret = process.env.GHE_CLIENT_SECRET;
 
@@ -135,33 +125,30 @@ app.get('/auth/github-enterprise/callback', async (c) => {
       const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           client_id: clientId,
           client_secret: clientSecret,
-          code: code,
+          code,
         }),
       });
 
       const tokenData = await tokenResponse.json();
-
       if (tokenData.access_token) {
-        // Get user info from GitHub API
         const apiUrl = gheBase.includes('github.com')
           ? 'https://api.github.com/user'
-          : `${gheBase}/api/v3/user`; // GitHub Enterprise uses /api/v3
+          : `${gheBase}/api/v3/user`;
 
         const userResponse = await fetch(apiUrl, {
           headers: {
-            'Authorization': `Bearer ${tokenData.access_token}`,
-            'Accept': 'application/json',
+            Authorization: `Bearer ${tokenData.access_token}`,
+            Accept: 'application/json',
           },
         });
 
         const userData = await userResponse.json();
-
         target.searchParams.set('ok', 'true');
         target.searchParams.set('user', userData.login || 'user');
         logger.info({ user: userData.login, apiUrl }, 'user authenticated');
@@ -177,56 +164,45 @@ app.get('/auth/github-enterprise/callback', async (c) => {
     target.searchParams.set('ok', 'true');
   }
 
-  // Clear the state cookie
   setCookie(c, 'ghe_state', '', { path: '/', maxAge: 0 });
-
   const redirectTarget = target.toString();
-  logger.info({
-    redirectTarget,
-    error: target.searchParams.get('error')
-  }, 'callback redirect');
-
+  logger.info(
+    { redirectTarget, error: target.searchParams.get('error') },
+    'callback redirect'
+  );
   return c.redirect(redirectTarget, 302);
 });
 
-// ============================================
-// Static File Serving
-// ============================================
+app.use(
+  '/*',
+  serveStatic({
+    root: distDir,
+    precompressed: true,
+    onNotFound: () => {
+      // 404s will be handled by SPA fallback.
+    },
+  })
+);
 
-// Serve static files from dist directory
-// This serves all CSS, JS, images, and other assets
-app.use('/*', serveStatic({
-  root: './dist',
-  onNotFound: (path, c) => {
-    // Don't log 404s for static files, will be handled by SPA fallback
-  }
-}));
-
-// SPA fallback - serve index.html for all non-API routes
-// This enables client-side routing to work properly
-app.get('*', async (c) => {
+app.get('*', (c) => {
   try {
-    const indexPath = join(__dirname, '..', '..', 'dist', 'index.html');
-    const html = readFileSync(indexPath, 'utf-8');
+    if (cachedIndexHtml) {
+      return c.html(cachedIndexHtml);
+    }
+
+    const html = readFileSync(indexHtmlPath, 'utf-8');
+    cachedIndexHtml = html;
     return c.html(html);
   } catch (error) {
-    logger.error({ error }, 'Failed to serve index.html');
+    logger.error({ error, indexHtmlPath }, 'Failed to serve index.html');
     return c.text('Internal Server Error', 500);
   }
 });
-
-// ============================================
-// Start Server
-// ============================================
 
 serve({
   fetch: app.fetch,
   port,
 });
 
-logger.info({ port }, '🚀 Production server listening');
-logger.info('Routes:');
-logger.info('  GET /healthz - Health check');
-logger.info('  GET /auth/github-enterprise/authorize - OAuth authorize');
-logger.info('  GET /auth/github-enterprise/callback - OAuth callback');
-logger.info('  GET /* - Static files + SPA fallback');
+logger.info({ port }, 'Production server listening');
+
