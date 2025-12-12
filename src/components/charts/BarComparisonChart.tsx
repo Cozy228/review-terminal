@@ -1,4 +1,5 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import type { EChartsOption } from 'echarts';
+import { RetroEChart, resolveCssVar } from './RetroEChart';
 
 type Tone = 'green' | 'blue' | 'gold' | 'red' | 'purple' | 'pink' | 'orange' | 'primary';
 
@@ -12,31 +13,15 @@ interface BarComparisonChartProps {
   height?: number;
 }
 
-const TONE_COLORS: Record<Tone, string> = {
+const toneToColorVar: Record<Tone, string> = {
   green: 'var(--retro-primary)',
   blue: 'var(--retro-blue)',
   gold: 'var(--retro-gold)',
   red: 'var(--retro-red)',
   purple: 'var(--retro-purple)',
   pink: 'var(--retro-pink)',
-  orange: '#ff8c00',
+  orange: 'var(--retro-legendary)',
   primary: 'var(--retro-primary)',
-};
-
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="retro-chart-tooltip">
-        <div className="retro-chart-tooltip-label">{data.label}</div>
-        <div className="retro-chart-tooltip-item">
-          <span>Percentage:</span>
-          <span>{data.value}%</span>
-        </div>
-      </div>
-    );
-  }
-  return null;
 };
 
 export const BarComparisonChart: React.FC<BarComparisonChartProps> = ({
@@ -45,70 +30,111 @@ export const BarComparisonChart: React.FC<BarComparisonChartProps> = ({
   height = 300,
 }) => {
   const isHorizontal = orientation === 'horizontal';
+  const borderColor = resolveCssVar('var(--retro-border)');
+  const textSecondary = resolveCssVar('var(--text-secondary)');
+  const textPrimary = resolveCssVar('var(--text-primary)');
 
-  return (
-    <div className="retro-chart-container">
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart
-          data={data}
-          layout={isHorizontal ? 'vertical' : 'horizontal'}
-          margin={{ top: 10, right: 40, left: isHorizontal ? 20 : 10, bottom: 10 }}
-          barGap={8}
-          barCategoryGap={isHorizontal ? '25%' : '20%'}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--retro-border)" />
-          {isHorizontal ? (
-            <>
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                tick={{ fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 11 }}
-                tickLine={{ stroke: 'var(--retro-border)' }}
-              />
-              <YAxis
-                type="category"
-                dataKey="label"
-                tick={{ fill: 'var(--text-primary)', fontFamily: 'Courier New, monospace', fontSize: 12, fontWeight: 'bold' }}
-                tickLine={{ stroke: 'var(--retro-border)' }}
-                width={30}
-              />
-            </>
-          ) : (
-            <>
-              <XAxis
-                type="category"
-                dataKey="label"
-                tick={{ fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 11 }}
-                tickLine={{ stroke: 'var(--retro-border)' }}
-              />
-              <YAxis
-                type="number"
-                domain={[0, 100]}
-                tick={{ fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 11 }}
-                tickLine={{ stroke: 'var(--retro-border)' }}
-              />
-            </>
-          )}
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 255, 65, 0.05)' }} />
-          <Bar
-            dataKey="value"
-            radius={[0, 4, 4, 0]}
-            animationDuration={1200}
-            animationBegin={0}
-            isAnimationActive={true}
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={TONE_COLORS[entry.tone]} />
-            ))}
-            <LabelList
-              dataKey="value"
-              position={isHorizontal ? 'right' : 'top'}
-              formatter={(value: any) => `${value}%`}
-              style={{ fill: 'var(--text-primary)', fontFamily: 'Courier New, monospace', fontSize: '12px', fontWeight: 'bold' }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  const categories = data.map((d) => d.label);
+  const seriesData = data.map((d) => ({ value: d.value, tone: d.tone }));
+
+  const tooltipFormatter = (params: any) => {
+    const p = Array.isArray(params) ? params[0] : params;
+    if (!p) return '';
+    return `
+      <div class="retro-chart-tooltip">
+        <div class="retro-chart-tooltip-label">${p.name}</div>
+        <div class="retro-chart-tooltip-item"><span>Percentage:</span><span>${p.value}%</span></div>
+      </div>
+    `;
+  };
+
+  const option: EChartsOption = {
+    grid: {
+      left: 20,
+      right: 20,
+      top: 10,
+      bottom: 10,
+      containLabel: true,
+    },
+    tooltip: {
+      trigger: 'item',
+      renderMode: 'html',
+      confine: true,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      formatter: tooltipFormatter,
+      extraCssText: 'box-shadow:none;',
+    },
+    xAxis: isHorizontal
+      ? {
+          type: 'value',
+          min: 0,
+          max: 100,
+          axisLine: { lineStyle: { color: borderColor } },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+          axisLabel: {
+            color: textSecondary,
+            fontSize: 11,
+          },
+        }
+      : {
+          type: 'category',
+          data: categories,
+          axisLine: { lineStyle: { color: borderColor } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: textSecondary,
+            fontSize: 11,
+          },
+        },
+    yAxis: isHorizontal
+      ? {
+          type: 'category',
+          data: categories,
+          axisLine: { lineStyle: { color: borderColor } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: textPrimary,
+            fontSize: 12,
+            fontWeight: 'bold',
+          },
+        }
+      : {
+          type: 'value',
+          min: 0,
+          max: 100,
+          axisLine: { lineStyle: { color: borderColor } },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+          axisLabel: {
+            color: textSecondary,
+            fontSize: 11,
+          },
+        },
+    series: [
+      {
+        type: 'bar' as const,
+        data: seriesData,
+        barCategoryGap: isHorizontal ? '25%' : '20%',
+        barGap: 8,
+        itemStyle: {
+          color: (params: any) => {
+            const tone = params.data?.tone as Tone;
+            return resolveCssVar(toneToColorVar[tone] || toneToColorVar.green);
+          },
+        },
+        label: {
+          show: true,
+          position: isHorizontal ? 'right' : 'top',
+          formatter: '{c}%',
+          color: textPrimary,
+          fontSize: 12,
+          fontWeight: 'bold',
+        },
+      },
+    ],
+  };
+
+  return <RetroEChart option={option} height={height} />;
 };

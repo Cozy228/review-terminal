@@ -7,40 +7,13 @@
   position: relative;
   padding: var(--unit);
   background: var(--retro-surface);
-  font-family: 'Courier New', monospace;
-}
-
-/* Recharts overrides for retro style */
-.recharts-cartesian-grid-horizontal line,
-.recharts-cartesian-grid-vertical line {
-  stroke: var(--retro-border);
-  stroke-dasharray: 3 3;
-  stroke-width: 1;
-}
-
-/* Axis styling */
-.recharts-xAxis,
-.recharts-yAxis {
-  font-family: 'Courier New', monospace !important;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-}
-
-.recharts-text {
-  fill: var(--text-secondary) !important;
-  font-family: 'Courier New', monospace !important;
 }
 
 /* Tooltip styling - retro card */
-.recharts-tooltip-wrapper {
-  outline: none;
-}
-
 .retro-chart-tooltip {
   background: var(--retro-panel);
   border: 2px solid var(--retro-border-strong);
   padding: 8px 12px;
-  font-family: 'Courier New', monospace;
   font-size: 0.75rem;
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
 }
@@ -60,50 +33,10 @@
   margin: 2px 0;
 }
 
-/* Legend styling */
-.recharts-legend-wrapper {
-  font-family: 'Courier New', monospace !important;
-  font-size: 0.75rem;
-}
-
-.recharts-legend-item-text {
-  color: var(--text-primary) !important;
-  letter-spacing: 0.05em;
-}
-
-/* Scatter chart dots */
-.recharts-scatter-symbol {
-  stroke-width: 2;
-}
-
-/* Reference lines for quadrants */
-.recharts-reference-line {
-  stroke-dasharray: 5 5;
-  stroke-width: 1.5;
-}
-
-/* Radial gauge specific */
-.recharts-radial-bar-background-sector {
-  fill: var(--retro-surface);
-  opacity: 0.3;
-}
-
+/* Radial gauge label */
 .radial-gauge-label {
-  font-family: 'Courier New', monospace;
   font-size: 1.5rem;
   font-weight: bold;
-  fill: var(--text-primary);
-}
-
-/* Area chart gradients */
-.chart-area-gradient {
-  opacity: 0.3;
-}
-
-/* Bar chart labels */
-.recharts-bar-label {
-  font-family: 'Courier New', monospace;
-  font-size: 0.7rem;
   fill: var(--text-primary);
 }
 

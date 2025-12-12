@@ -1,39 +1,31 @@
-import { useState, useEffect, useRef } from 'react';
-import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
+import type { EChartsOption } from 'echarts';
+import { RetroEChart, resolveCssVar } from './RetroEChart';
 
 type Tone = 'green' | 'gold' | 'red';
 
 interface RadialGaugeProps {
-  value: number; // 0-100
+  value: number;
   target?: number;
   label: string;
   tone: Tone;
 }
 
-const TONE_COLORS: Record<Tone, string> = {
+const toneToColorVar: Record<Tone, string> = {
   green: 'var(--retro-primary)',
   gold: 'var(--retro-gold)',
   red: 'var(--retro-red)',
 };
 
-export const RadialGaugeChart: React.FC<RadialGaugeProps> = ({
-  value,
-  label,
-  tone,
-}) => {
-  const [animatedValue, setAnimatedValue] = useState(0);
+export const RadialGaugeChart: React.FC<RadialGaugeProps> = ({ value, label, tone }) => {
   const [displayValue, setDisplayValue] = useState(0);
   const animationRef = useRef({ value: 0 });
 
   useEffect(() => {
-    // Delay animation start to ensure component is visible
-    const timer = setTimeout(() => {
-      setAnimatedValue(value);
-
-      // Animate the display number
+    const timer = window.setTimeout(() => {
       gsap.to(animationRef.current, {
-        value: value,
+        value,
         duration: 1.5,
         ease: 'power2.out',
         onUpdate: () => {
@@ -41,41 +33,49 @@ export const RadialGaugeChart: React.FC<RadialGaugeProps> = ({
         },
       });
     }, 100);
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [value]);
 
-  const data = [
-    {
-      name: label,
-      value: animatedValue,
-      fill: TONE_COLORS[tone],
-    },
-  ];
+  const toneColor = resolveCssVar(toneToColorVar[tone]);
+  const borderColor = resolveCssVar('var(--retro-border)');
+
+  const option: EChartsOption = {
+    series: [
+      {
+        type: 'gauge' as const,
+        startAngle: 180,
+        endAngle: 0,
+        min: 0,
+        max: 100,
+        radius: '100%',
+        center: ['50%', '85%'],
+        pointer: { show: false },
+        axisLine: {
+          roundCap: true,
+          lineStyle: {
+            width: 18,
+            color: [[1, borderColor]],
+          },
+        },
+        progress: {
+          show: true,
+          roundCap: true,
+          width: 18,
+          itemStyle: { color: toneColor },
+        },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { show: false },
+        detail: { show: false },
+        title: { show: false },
+        data: [{ value, name: label }],
+      },
+    ],
+  };
 
   return (
-    <div className="retro-chart-container" style={{ position: 'relative', height: '280px' }}>
-      <ResponsiveContainer width="100%" height={280}>
-        <RadialBarChart
-          cx="50%"
-          cy="85%"
-          innerRadius="65%"
-          outerRadius="100%"
-          barSize={32}
-          data={data}
-          startAngle={180}
-          endAngle={0}
-        >
-          <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-          <RadialBar
-            background={{ fill: 'var(--retro-border)', opacity: 0.5 }}
-            dataKey="value"
-            cornerRadius={8}
-            animationDuration={1500}
-            animationBegin={0}
-            isAnimationActive={true}
-          />
-        </RadialBarChart>
-      </ResponsiveContainer>
+    <div style={{ position: 'relative', height: '280px' }}>
+      <RetroEChart option={option} height={280} className="retro-chart-container" style={{ height: '280px' }} />
       <div
         style={{
           position: 'absolute',
@@ -90,7 +90,7 @@ export const RadialGaugeChart: React.FC<RadialGaugeProps> = ({
           style={{
             fontSize: '3rem',
             fontWeight: 'bold',
-            color: TONE_COLORS[tone],
+            color: toneColor,
           }}
         >
           {displayValue}%

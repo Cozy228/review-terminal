@@ -1,4 +1,5 @@
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import type { EChartsOption } from 'echarts';
+import { RetroEChart, resolveCssVar } from './RetroEChart';
 
 export interface VendorQuadrantData {
   name: string;
@@ -12,97 +13,125 @@ interface VendorQuadrantChartProps {
   industryAvg: { velocity: number; leadTime: number };
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="retro-chart-tooltip">
-        <div className="retro-chart-tooltip-label">{data.name}</div>
-        <div className="retro-chart-tooltip-item">
-          <span>Velocity:</span>
-          <span>{data.velocity} SP/mo</span>
-        </div>
-        <div className="retro-chart-tooltip-item">
-          <span>Lead Time:</span>
-          <span>{data.leadTime} days</span>
-        </div>
-        <div className="retro-chart-tooltip-item">
-          <span>Type:</span>
-          <span>{data.isInternal ? 'Internal' : 'Contractor'}</span>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
 export const VendorQuadrantChart: React.FC<VendorQuadrantChartProps> = ({ data, industryAvg }) => {
-  const getColor = (isInternal: boolean, index: number) => {
-    if (isInternal) return 'var(--retro-primary)';
-    const contractorColors = ['var(--retro-gold)', 'var(--retro-pink)', 'var(--retro-purple)'];
-    return contractorColors[index % contractorColors.length];
+  const primaryColor = resolveCssVar('var(--retro-primary)');
+  const goldColor = resolveCssVar('var(--retro-gold)');
+  const pinkColor = resolveCssVar('var(--retro-pink)');
+  const purpleColor = resolveCssVar('var(--retro-purple)');
+  const avgColor = resolveCssVar('var(--retro-blue)');
+  const borderColor = resolveCssVar('var(--retro-border)');
+  const textSecondary = resolveCssVar('var(--text-secondary)');
+  const textPrimary = resolveCssVar('var(--text-primary)');
+
+  const contractorColors = [goldColor, pinkColor, purpleColor];
+
+  const points = data.map((d, index) => ({
+    name: d.name,
+    value: [d.velocity, d.leadTime],
+    isInternal: d.isInternal,
+    itemStyle: {
+      color: d.isInternal ? primaryColor : contractorColors[index % contractorColors.length],
+    },
+  }));
+
+  const tooltipFormatter = (params: any) => {
+    const p = Array.isArray(params) ? params[0] : params;
+    const d = p?.data;
+    if (!d) return '';
+    return `
+      <div class="retro-chart-tooltip">
+        <div class="retro-chart-tooltip-label">${d.name}</div>
+        <div class="retro-chart-tooltip-item"><span>Velocity:</span><span>${d.value[0]} SP/mo</span></div>
+        <div class="retro-chart-tooltip-item"><span>Lead Time:</span><span>${d.value[1]} days</span></div>
+        <div class="retro-chart-tooltip-item"><span>Type:</span><span>${d.isInternal ? 'Internal' : 'Contractor'}</span></div>
+      </div>
+    `;
   };
 
-  return (
-    <div className="retro-chart-container">
-      <ResponsiveContainer width="100%" height={300}>
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--retro-border)" />
-          <XAxis
-            type="number"
-            dataKey="velocity"
-            name="Velocity"
-            unit=" SP"
-            domain={['dataMin - 5', 'dataMax + 5']}
-            tick={{ fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 11 }}
-            label={{ value: 'Velocity (SP/month)', position: 'bottom', fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 12 }}
-          />
-          <YAxis
-            type="number"
-            dataKey="leadTime"
-            name="Lead Time"
-            unit=" days"
-            domain={['dataMin - 1', 'dataMax + 1']}
-            reversed
-            tick={{ fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 11 }}
-            label={{ value: 'Lead Time (days)', angle: -90, position: 'left', fill: 'var(--text-secondary)', fontFamily: 'Courier New, monospace', fontSize: 12 }}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+  const option: EChartsOption = {
+    grid: { left: 58, right: 110, top: 16, bottom: 56, containLabel: true },
+    tooltip: {
+      trigger: 'item',
+      renderMode: 'html',
+      confine: true,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      formatter: tooltipFormatter,
+      extraCssText: 'box-shadow:none;',
+    },
+    xAxis: {
+      type: 'value',
+      name: 'Velocity (SP/mo)',
+      nameLocation: 'middle',
+      nameGap: 22,
+      nameTextStyle: {
+        color: textSecondary,
+        fontSize: 12,
+      },
+      axisLine: { lineStyle: { color: borderColor } },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+      axisLabel: {
+        color: textSecondary,
+        fontSize: 11,
+      },
+      min: (value: any) => value.min - 5,
+      max: (value: any) => value.max + 5,
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Lead Time (days)',
+      nameLocation: 'middle',
+      nameGap: 34,
+      nameRotate: 90,
+      inverse: true,
+      nameTextStyle: {
+        color: textSecondary,
+        fontSize: 12,
+      },
+      axisLine: { lineStyle: { color: borderColor } },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: borderColor, type: 'dashed' } },
+      axisLabel: {
+        color: textSecondary,
+        fontSize: 11,
+      },
+      min: (value: any) => value.min - 1,
+      max: (value: any) => value.max + 1,
+    },
+    series: [
+      {
+        type: 'scatter' as const,
+        name: 'Vendors',
+        data: points,
+        symbolSize: 10,
+        label: {
+          show: true,
+          formatter: (p: any) => p.data?.name ?? '',
+          position: 'right',
+          color: textPrimary,
+          fontSize: 11,
+          fontWeight: 'bold',
+          offset: [8, 0],
+        },
+        labelLayout: { hideOverlap: true },
+        markLine: {
+          silent: true,
+          symbol: ['none', 'none'],
+          lineStyle: { color: avgColor, width: 1.5, type: 'dashed' },
+          label: {
+            formatter: 'Avg',
+            color: avgColor,
+            fontSize: 10,
+          },
+          data: [
+            { xAxis: industryAvg.velocity },
+            { yAxis: industryAvg.leadTime },
+          ],
+        },
+      },
+    ],
+  };
 
-          {/* Reference lines for quadrants */}
-          <ReferenceLine
-            x={industryAvg.velocity}
-            stroke="var(--retro-blue)"
-            strokeDasharray="5 5"
-            strokeWidth={1.5}
-            label={{ value: 'Avg', position: 'top', fill: 'var(--retro-blue)', fontFamily: 'Courier New, monospace', fontSize: 10 }}
-          />
-          <ReferenceLine
-            y={industryAvg.leadTime}
-            stroke="var(--retro-blue)"
-            strokeDasharray="5 5"
-            strokeWidth={1.5}
-            label={{ value: 'Avg', position: 'right', fill: 'var(--retro-blue)', fontFamily: 'Courier New, monospace', fontSize: 10 }}
-          />
-
-          <Scatter name="Vendors" data={data} fill="var(--retro-primary)">
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={getColor(entry.isInternal, index)} />
-            ))}
-            <LabelList
-              dataKey="name"
-              position="right"
-              style={{
-                fill: 'var(--text-primary)',
-                fontFamily: 'Courier New, monospace',
-                fontSize: '11px',
-                fontWeight: 'bold',
-              }}
-              offset={8}
-            />
-          </Scatter>
-        </ScatterChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  return <RetroEChart option={option} height={360} style={{ padding: 0 }} />;
 };

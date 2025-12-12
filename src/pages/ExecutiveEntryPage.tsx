@@ -15,7 +15,7 @@ interface ExecutiveEntryPageProps {
 }
 
 export const ExecutiveEntryPage = forwardRef<HTMLDivElement, ExecutiveEntryPageProps>(
-  ({ cursorRef, onEmailSubmit, statusMessage, errorMessage, isBusy }, ref) => {
+  ({ onEmailSubmit, statusMessage, errorMessage, isBusy }, ref) => {
     const [doneCount, setDoneCount] = useState(0);
     const [email, setEmail] = useState('');
     const titlesDone = useMemo(() => doneCount >= 1, [doneCount]);
@@ -112,16 +112,6 @@ export const ExecutiveEntryPage = forwardRef<HTMLDivElement, ExecutiveEntryPageP
                     }}
                   />
                 )}
-                <span
-                  ref={cursorRef}
-                  style={{
-                    width: "0.5ch",
-                    height: "1em",
-                    backgroundColor: "var(--text-primary)",
-                    marginLeft: "2px",
-                    transform: "translateY(0.2em)",
-                  }}
-                />
               </div>
 
               <div className="text-sm" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
