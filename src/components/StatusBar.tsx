@@ -16,6 +16,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
         return { color: 'var(--accent-warning)', fontWeight: 'bold' };
       case 'PROCESSING...':
         return { color: 'var(--accent-info)', fontWeight: 'bold' };
+      case 'EXPORTING...':
+        return { color: 'var(--accent-warning)', fontWeight: 'bold' };
       case 'COMPLETE':
         return { color: 'var(--accent-success)', fontWeight: 'bold' };
       case 'ERROR':
@@ -45,7 +47,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status }) => {
       
       <div className="flex items-center gap-6">
         <span 
-          className={status === 'AUTHORIZING...' || status === 'LOADING...' || status === 'PROCESSING...' ? 'animate-pulse' : ''}
+          className={status === 'AUTHORIZING...' || status === 'LOADING...' || status === 'PROCESSING...' || status === 'EXPORTING...' ? 'animate-pulse' : ''}
           style={getStatusStyle()}
         >
           {status}

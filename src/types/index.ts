@@ -192,4 +192,11 @@ export type AnimationPhase =
   | 'community'
   | 'summary';
 
-export type TerminalStatus = 'READY' | 'AUTHORIZING...' | 'LOADING...' | 'PROCESSING...' | 'COMPLETE' | 'ERROR';
+export type TerminalStatus =
+  | 'READY'
+  | 'AUTHORIZING...'
+  | 'LOADING...'
+  | 'PROCESSING...'
+  | 'EXPORTING...'
+  | 'COMPLETE'
+  | 'ERROR';

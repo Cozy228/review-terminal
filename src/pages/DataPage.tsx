@@ -15,6 +15,7 @@ interface DataPageProps {
   displayUser: string;
   showMenu: boolean;
   onReplay: () => void;
+  onDownload: () => void;
 }
 
 interface Achievement {
@@ -36,7 +37,7 @@ const parseHighlight = (text: string) => {
 };
 
 export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
-  ({ reviewData, displayUser, showMenu, onReplay }, ref) => {
+  ({ reviewData, displayUser, showMenu, onReplay, onDownload }, ref) => {
     const { user, git, techStack, workflow, cicd, jira, copilot, learning, community, summary } = reviewData;
 
     // Git data
@@ -150,7 +151,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
               <div className="player-info">
                 {user.avatar && (
                   <div className="avatar-wrapper">
-                    <img src={user.avatar} alt={displayUser} className="retro-avatar player-avatar" />
+                    <img src={user.avatar} alt={displayUser} className="retro-avatar player-avatar" crossOrigin="anonymous" />
                   </div>
                 )}
                 <div className="player-details">
@@ -194,7 +195,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
                       <div key={collab.username + index} className="collab-story">
                         {collab.avatar && (
                           <div className="avatar-wrapper">
-                            <img src={collab.avatar} alt={collab.username} className="retro-avatar collab-avatar" />
+                            <img src={collab.avatar} alt={collab.username} className="retro-avatar collab-avatar" crossOrigin="anonymous" />
                           </div>
                         )}
                         <span className="collab-text">
@@ -405,7 +406,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
               }}
             >
               <span onClick={onReplay}>[R]eplay</span>
-              <span>[D]ownload</span>
+              <span onClick={onDownload}>[D]ownload</span>
               <span>[S]hare</span>
             </div>
           </section>

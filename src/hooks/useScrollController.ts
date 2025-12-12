@@ -142,8 +142,9 @@ export function useScrollController({
     [centerOffset, contentSelector, duration, easing, setUserScrolling]
   );
 
-  useEffect(() => teardown, [teardown]);
+  useEffect(() => {
+    return teardown;
+  }, [teardown]);
 
   return { scrollTo, progress, setContainer };
 }
-

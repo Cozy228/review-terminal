@@ -5,6 +5,7 @@ import { mockReviewData } from '../data/mockData';
 import { resetRetroModules } from '../animations/utils';
 import { createDataTimeline } from '../animations/dataTimeline';
 import { createExecutiveTimeline } from '../animations/executiveTimeline';
+import { downloadPdfFromElement } from '../utils/exportPdf';
 import type { AnimationPhase, TerminalStatus } from '../types';
 
 export interface UseAppModeOptions {
@@ -48,6 +49,8 @@ export function useAppMode({
 
   const dataDelayTimerRef = useRef<number | null>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const exportInProgressRef = useRef(false);
+  const exportStatusResetTimerRef = useRef<number | null>(null);
 
   const teardownDataScroll = useCallback(() => {
     setDataContainer(null);
@@ -73,7 +76,7 @@ export function useAppMode({
     const tl = createExecutiveTimeline({
       onPhaseChange: setPhase,
       onStatusChange: setStatus,
-      onShowMenu: setExecShowMenu,
+      onShowMenu: (show: boolean) => setExecShowMenu(show),
       scrollToModule: scrollToExecModule,
     });
     timelineRef.current = tl;
@@ -84,6 +87,13 @@ export function useAppMode({
     if (dataDelayTimerRef.current) {
       window.clearTimeout(dataDelayTimerRef.current);
       dataDelayTimerRef.current = null;
+    }
+  }, []);
+
+  const clearExportStatusResetTimer = useCallback(() => {
+    if (exportStatusResetTimerRef.current) {
+      window.clearTimeout(exportStatusResetTimerRef.current);
+      exportStatusResetTimerRef.current = null;
     }
   }, []);
 
@@ -105,7 +115,7 @@ export function useAppMode({
       const tl = createDataTimeline({
         onPhaseChange: setPhase,
         onStatusChange: setStatus,
-        onShowMenu: setShowMenu,
+        onShowMenu: (show: boolean) => setShowMenu(show),
         scrollToModule,
         setupDataScroll,
         idlePageRef,
@@ -129,6 +139,78 @@ export function useAppMode({
     setExecShowMenu(false);
     setupExecutiveScroll();
   }, [execPageRef, setUserScrolling, setupExecutiveScroll]);
+
+  const downloadPdf = useCallback(async () => {
+    if (exportInProgressRef.current) return;
+    exportInProgressRef.current = true;
+
+    clearExportStatusResetTimer();
+    const previousStatus = status;
+
+    try {
+      const exportAllowed = isExecutiveMode ? execShowMenu : showMenu;
+      if (!exportAllowed) return;
+
+      setStatus('EXPORTING...');
+
+      const pageRoot = isExecutiveMode ? execPageRef.current : dataPageRef.current;
+      const contentSelector = isExecutiveMode ? '.exec-scroll-content' : '.data-scroll-content';
+      const contentRoot = pageRoot?.querySelector<HTMLElement>(contentSelector) ?? null;
+
+      if (!contentRoot) {
+        throw new Error(`PDF export root not found: ${contentSelector}`);
+      }
+
+      const nameToken = isExecutiveMode ? (execEmail || 'executive') : displayUser;
+      const safeName = nameToken
+        .replace(/[^a-z0-9._-]+/gi, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      const filename = `2025-developer-review-${safeName || 'report'}-${Date.now()}.pdf`;
+
+      const coverRoot = idlePageRef.current ?? execEntryPageRef.current;
+      const coverSignatureName = isExecutiveMode ? (execEmail || 'executive') : displayUser;
+      const coverSignature = coverSignatureName.includes('@')
+        ? `— ${coverSignatureName}`
+        : `— @${coverSignatureName}`;
+      await downloadPdfFromElement({
+        root: contentRoot,
+        filename,
+        cover: coverRoot,
+        coverFit: 'contain',
+        coverMarginMm: 0,
+        coverDisclaimerLines: [
+          'DISCLAIMER',
+          'This PDF is a visual snapshot of the UI at export time.',
+          'It may contain synthetic or incomplete data.',
+        ],
+        coverSignature,
+      });
+
+      setStatus(previousStatus);
+    } catch (error) {
+      console.error('PDF export failed', error);
+      setStatus('ERROR');
+      exportStatusResetTimerRef.current = window.setTimeout(() => {
+        setStatus((current) => (current === 'ERROR' ? previousStatus : current));
+        exportStatusResetTimerRef.current = null;
+      }, 4000);
+    } finally {
+      exportInProgressRef.current = false;
+    }
+  }, [
+    clearExportStatusResetTimer,
+    dataPageRef,
+    displayUser,
+    execEmail,
+    execPageRef,
+    execShowMenu,
+    execEntryPageRef,
+    idlePageRef,
+    isExecutiveMode,
+    showMenu,
+    status,
+  ]);
 
   const handleExecutiveEmailSubmit = useCallback(
     (email: string) => {
@@ -308,13 +390,14 @@ export function useAppMode({
   useEffect(() => {
     return () => {
       clearDataDelayTimer();
+      clearExportStatusResetTimer();
       teardownExecutiveScroll();
       teardownDataScroll();
       if (timelineRef.current) {
         timelineRef.current.kill();
       }
     };
-  }, [clearDataDelayTimer, teardownDataScroll, teardownExecutiveScroll]);
+  }, [clearDataDelayTimer, clearExportStatusResetTimer, teardownDataScroll, teardownExecutiveScroll]);
 
   return {
     status,
@@ -332,6 +415,7 @@ export function useAppMode({
     startDataTimeline,
     handleAuthComplete,
     replayExecAnimation,
+    downloadPdf,
     resetToIdle,
     handleExecutiveEmailSubmit,
   };

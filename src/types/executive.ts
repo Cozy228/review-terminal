@@ -250,6 +250,7 @@ export interface TeamSummary {
 export interface ExecutiveDataPageProps {
   showMenu?: boolean;
   onReplay?: () => void;
+  onDownload?: () => void;
   onBack?: () => void;
 }
 

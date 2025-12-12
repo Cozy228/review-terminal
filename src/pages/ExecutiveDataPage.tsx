@@ -7,7 +7,7 @@ import '../styles/retro-game.css';
 import '../styles/executive-charts.css';
 
 export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPageProps>(
-  ({ showMenu, onReplay, onBack }, ref) => {
+  ({ showMenu, onReplay, onDownload, onBack }, ref) => {
     // Transform DepartmentEntity to section data structures
     const cto = { name: executiveMock.managerName, title: executiveMock.title };
 
@@ -281,7 +281,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
               }}
             >
               <span onClick={onReplay}>[R]eplay</span>
-              <span>[D]ownload PDF</span>
+              <span onClick={onDownload}>[D]ownload PDF</span>
               <span onClick={onBack}>[B]ack to Menu</span>
             </div>
           </section>

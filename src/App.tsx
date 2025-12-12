@@ -67,6 +67,7 @@ function App() {
     startDataTimeline,
     handleAuthComplete,
     replayExecAnimation,
+    downloadPdf,
     resetToIdle,
     handleExecutiveEmailSubmit,
   } = useAppMode({
@@ -90,6 +91,7 @@ function App() {
     handleAuthComplete,
     startDataTimeline,
     replayExecAnimation,
+    downloadPdf,
     resetToIdle,
   });
 
@@ -148,6 +150,7 @@ function App() {
           reviewData={mockReviewData}
           showMenu={showMenu}
           onReplay={() => startDataTimeline(true)}
+          onDownload={downloadPdf}
         />
       )}
       {isExecutiveMode && (
@@ -155,6 +158,7 @@ function App() {
           ref={execPageRef}
           showMenu={execShowMenu}
           onReplay={replayExecAnimation}
+          onDownload={downloadPdf}
           onBack={resetToIdle}
         />
       )}
