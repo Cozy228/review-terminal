@@ -14,6 +14,7 @@ import { getCookie, setCookie } from 'hono/cookie';
 import pino from 'pino';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { registerShareRoutes } from './shareRoutes.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 const app = new Hono();
@@ -62,6 +63,8 @@ app.use('*', async (c, next) => {
 });
 
 app.get('/healthz', (c) => c.text('ok'));
+
+registerShareRoutes(app, { logger });
 
 app.get('/auth/github-enterprise/authorize', (c) => {
   const baseUrl = process.env.GHE_BASE_URL || 'https://github.com';
@@ -205,4 +208,3 @@ serve({
 });
 
 logger.info({ port }, 'Production server listening');
-

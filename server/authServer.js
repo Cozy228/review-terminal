@@ -4,6 +4,7 @@ import { serve } from '@hono/node-server';
 import { getCookie, setCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 import pino from 'pino';
+import { registerShareRoutes } from './shareRoutes.js';
 
 const envLoaded = dotenv.config({ path: '.env.local' });
 if (envLoaded.error) {
@@ -37,6 +38,8 @@ app.use('*', async (c, next) => {
 });
 
 app.get('/healthz', (c) => c.text('ok'));
+
+registerShareRoutes(app, { logger });
 
 app.get('/auth/github-enterprise/authorize', (c) => {
   const baseUrl = process.env.GHE_BASE_URL || 'https://github.com';

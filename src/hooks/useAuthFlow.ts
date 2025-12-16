@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { joinUrl, resolveBaseUrl } from '../utils/url';
 
 type AuthStage = 'redirecting' | 'loading';
 
@@ -34,9 +35,9 @@ export function useAuthFlow({ onSuccess }: UseAuthFlowOptions) {
 
   // Fetch authorize URL from backend
   const getAuthorizeUrl = useCallback(async (): Promise<string | null> => {
-    const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+    const apiBase = resolveBaseUrl(import.meta.env.VITE_API_BASE, 'http://localhost:3000');
     try {
-      const res = await fetch(`${apiBase}/auth/github-enterprise/authorize`, {
+      const res = await fetch(joinUrl(apiBase, 'auth/github-enterprise/authorize'), {
         credentials: 'include',
       });
       const data = await res.json();

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import type { EChartsOption } from 'echarts';
-import { RetroEChart, resolveCssVar } from './RetroEChart';
+import { RetroEChart } from './RetroEChart';
+import { resolveCssVar } from './chartUtils';
 
 type Tone = 'green' | 'gold' | 'red';
 

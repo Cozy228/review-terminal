@@ -47,7 +47,7 @@ COPY pnpm-workspace.yaml* ./
 RUN pnpm install --prod --frozen-lockfile && rm -rf /root/.local/share/pnpm
 
 COPY --from=build /app/dist ./dist
-COPY server/productionServer.js ./server/productionServer.js
+COPY server ./server
 
 RUN addgroup -g 1001 -S nodejs \
   && adduser -S nodejs -u 1001 \
@@ -62,4 +62,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:' + (process.env.PORT || 8080) + '/healthz', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"
 
 CMD ["node", "server/productionServer.js"]
-

@@ -10,6 +10,7 @@ export interface UseKeyboardNavOptions {
   startDataTimeline: (isReplay?: boolean) => void;
   replayExecAnimation: () => void;
   downloadPdf: () => void;
+  shareReport: () => void;
   resetToIdle: () => void;
 }
 
@@ -22,6 +23,7 @@ export function useKeyboardNav({
   startDataTimeline,
   replayExecAnimation,
   downloadPdf,
+  shareReport,
   resetToIdle,
 }: UseKeyboardNavOptions) {
   useEffect(() => {
@@ -48,6 +50,8 @@ export function useKeyboardNav({
           }
         } else if (e.key === 'd' || e.key === 'D') {
           downloadPdf();
+        } else if (!isExecutiveMode && (e.key === 's' || e.key === 'S')) {
+          shareReport();
         } else if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
           resetToIdle();
         }
@@ -64,6 +68,7 @@ export function useKeyboardNav({
     handleAuthComplete,
     replayExecAnimation,
     downloadPdf,
+    shareReport,
     resetToIdle,
     startDataTimeline,
   ]);

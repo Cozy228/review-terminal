@@ -16,6 +16,7 @@ interface DataPageProps {
   showMenu: boolean;
   onReplay: () => void;
   onDownload: () => void;
+  onShare: () => void;
 }
 
 interface Achievement {
@@ -37,7 +38,7 @@ const parseHighlight = (text: string) => {
 };
 
 export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
-  ({ reviewData, displayUser, showMenu, onReplay, onDownload }, ref) => {
+  ({ reviewData, displayUser, showMenu, onReplay, onDownload, onShare }, ref) => {
     const { user, git, techStack, workflow, cicd, jira, copilot, learning, community, summary } = reviewData;
 
     // Git data
@@ -407,7 +408,7 @@ export const DataPage = forwardRef<HTMLDivElement, DataPageProps>(
             >
               <span onClick={onReplay}>[R]eplay</span>
               <span onClick={onDownload}>[D]ownload</span>
-              <span>[S]hare</span>
+              <span onClick={onShare}>[S]hare</span>
             </div>
           </section>
         </div>

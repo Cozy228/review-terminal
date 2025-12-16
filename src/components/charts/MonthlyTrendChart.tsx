@@ -1,5 +1,6 @@
 import type { EChartsOption } from 'echarts';
-import { RetroEChart, resolveCssVar } from './RetroEChart';
+import { RetroEChart } from './RetroEChart';
+import { resolveCssVar } from './chartUtils';
 
 interface MonthlyTrendChartProps {
   data: Array<{ month: string; [key: string]: string | number }>;
@@ -40,13 +41,21 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
     };
   });
 
-  const tooltipFormatter = (params: any) => {
+  const tooltipFormatter = (params: unknown) => {
     if (!Array.isArray(params) || params.length === 0) return '';
-    const label = params[0].axisValueLabel ?? params[0].name ?? '';
+
+    const first = params[0] as { axisValueLabel?: unknown; name?: unknown };
+    const label =
+      (typeof first.axisValueLabel === 'string' && first.axisValueLabel) ||
+      (typeof first.name === 'string' ? first.name : '');
+
     const items = params
-      .map((p: any) => {
+      .map((raw) => {
+        const p = raw as { seriesName?: unknown; color?: unknown; value?: unknown };
+        const seriesName = typeof p.seriesName === 'string' ? p.seriesName : '';
+        const color = typeof p.color === 'string' ? p.color : '';
         const value = Array.isArray(p.value) ? p.value[1] : p.value;
-        return `<div class="retro-chart-tooltip-item"><span>${p.seriesName}:</span><span style="color:${p.color}">${value}</span></div>`;
+        return `<div class="retro-chart-tooltip-item"><span>${seriesName}:</span><span style="color:${color}">${value}</span></div>`;
       })
       .join('');
     return `<div class="retro-chart-tooltip"><div class="retro-chart-tooltip-label">${label}</div>${items}</div>`;

@@ -129,6 +129,40 @@ export function useAppMode({
     [clearDataDelayTimer, dataPageRef, idlePageRef, scrollToModule, setupDataScroll, setUserScrolling]
   );
 
+  const startSharedReportView = useCallback(
+    (reportId: string) => {
+      const username = reportId.trim() || 'guest';
+
+      clearDataDelayTimer();
+
+      setIsExecutiveMode(false);
+      setExecShowMenu(false);
+      setExecEmail('');
+      setExecEntryStatus('idle');
+
+      setAuthStatus('idle');
+      setAuthMessage(null);
+      setAuthErrorMessage(null);
+
+      setDisplayUser(username);
+
+      const tryStart = (attempt: number) => {
+        if (dataPageRef.current) {
+          startDataTimeline(false);
+          return;
+        }
+        if (attempt >= 20) {
+          startDataTimeline(false);
+          return;
+        }
+        requestAnimationFrame(() => tryStart(attempt + 1));
+      };
+
+      tryStart(0);
+    },
+    [clearDataDelayTimer, dataPageRef, startDataTimeline]
+  );
+
   const replayExecAnimation = useCallback(() => {
     if (execPageRef.current) {
       execPageRef.current.scrollTop = 0;
@@ -314,7 +348,7 @@ export function useAppMode({
     resetAuth();
     resetRetroModules();
 
-    if (window.location.pathname === '/executive') {
+    if (window.location.pathname === '/executive' || window.location.pathname.startsWith('/report/view/')) {
       window.history.pushState({}, '', '/');
     }
   }, [clearDataDelayTimer, resetAuth, teardownExecutiveScroll]);
@@ -413,6 +447,7 @@ export function useAppMode({
     authErrorMessage,
     startAuthFlow,
     startDataTimeline,
+    startSharedReportView,
     handleAuthComplete,
     replayExecAnimation,
     downloadPdf,

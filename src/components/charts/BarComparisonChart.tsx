@@ -1,5 +1,6 @@
 import type { EChartsOption } from 'echarts';
-import { RetroEChart, resolveCssVar } from './RetroEChart';
+import { RetroEChart } from './RetroEChart';
+import { resolveCssVar } from './chartUtils';
 
 type Tone = 'green' | 'blue' | 'gold' | 'red' | 'purple' | 'pink' | 'orange' | 'primary';
 
@@ -37,13 +38,20 @@ export const BarComparisonChart: React.FC<BarComparisonChartProps> = ({
   const categories = data.map((d) => d.label);
   const seriesData = data.map((d) => ({ value: d.value, tone: d.tone }));
 
-  const tooltipFormatter = (params: any) => {
+  const isTone = (value: unknown): value is Tone =>
+    typeof value === 'string' && Object.prototype.hasOwnProperty.call(toneToColorVar, value);
+
+  const tooltipFormatter = (params: unknown) => {
     const p = Array.isArray(params) ? params[0] : params;
-    if (!p) return '';
+    if (!p || typeof p !== 'object') return '';
+
+    const record = p as { name?: unknown; value?: unknown };
+    const label = typeof record.name === 'string' ? record.name : '';
+    const value = typeof record.value === 'number' ? record.value : Number(record.value ?? 0);
     return `
       <div class="retro-chart-tooltip">
-        <div class="retro-chart-tooltip-label">${p.name}</div>
-        <div class="retro-chart-tooltip-item"><span>Percentage:</span><span>${p.value}%</span></div>
+        <div class="retro-chart-tooltip-label">${label}</div>
+        <div class="retro-chart-tooltip-item"><span>Percentage:</span><span>${value}%</span></div>
       </div>
     `;
   };
@@ -119,9 +127,10 @@ export const BarComparisonChart: React.FC<BarComparisonChartProps> = ({
         barCategoryGap: isHorizontal ? '25%' : '20%',
         barGap: 8,
         itemStyle: {
-          color: (params: any) => {
-            const tone = params.data?.tone as Tone;
-            return resolveCssVar(toneToColorVar[tone] || toneToColorVar.green);
+          color: (params: unknown) => {
+            const toneCandidate = (params as { data?: { tone?: unknown } }).data?.tone;
+            const tone = isTone(toneCandidate) ? toneCandidate : 'green';
+            return resolveCssVar(toneToColorVar[tone]);
           },
         },
         label: {

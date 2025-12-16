@@ -1,4 +1,14 @@
-import type { TeamBasicsData, TeamQualityData, TeamCICDData, TeamJiraData, TeamAIData, VendorMetric, DeliveryMetric } from '../types/executive';
+import type {
+  DepartmentEntity,
+  MonthlyTrend,
+  TeamBasicsData,
+  TeamQualityData,
+  TeamCICDData,
+  TeamJiraData,
+  TeamAIData,
+  VendorMetric,
+  DeliveryMetric,
+} from '../types/executive';
 import { generateProgressBar } from '../utils/ascii';
 
 type Tone = 'green' | 'gold' | 'blue' | 'red' | 'purple' | 'pink' | 'orange' | 'primary';
@@ -104,7 +114,9 @@ export class DeliveryAdapter {
   }
 
   // Chart data transformations
-  static toVendorQuadrantData(vendorBenchmarks: any): Array<{ name: string; velocity: number; leadTime: number; isInternal: boolean }> {
+  static toVendorQuadrantData(
+    vendorBenchmarks: DepartmentEntity['vendorBenchmarks']
+  ): Array<{ name: string; velocity: number; leadTime: number; isInternal: boolean }> {
     return [
       {
         name: vendorBenchmarks.ssc.name,
@@ -127,7 +139,7 @@ export class DeliveryAdapter {
     ];
   }
 
-  static toMonthlyTrendData(monthlyTrends: any[]): Array<{ month: string; velocity: number; leadTime: number }> {
+  static toMonthlyTrendData(monthlyTrends: MonthlyTrend[]): Array<{ month: string; velocity: number; leadTime: number }> {
     return monthlyTrends.map(trend => ({
       month: trend.month,
       velocity: trend.commits * 0.12, // estimate: commits to story points
@@ -135,7 +147,7 @@ export class DeliveryAdapter {
     }));
   }
 
-  static toTrendNarrative(monthlyTrends: any[]): string {
+  static toTrendNarrative(monthlyTrends: MonthlyTrend[]): string {
     if (!monthlyTrends || monthlyTrends.length === 0) return '';
     const latest = monthlyTrends[monthlyTrends.length - 1];
     const earliest = monthlyTrends[0];

@@ -9,6 +9,7 @@ import { useKeyboardNav } from './hooks/useKeyboardNav';
 import { StatusBar } from './components/StatusBar';
 import { ASCIIScrollbar } from './components/ASCIIScrollbar';
 import { WindowChrome } from './components/WindowChrome';
+import { Toast, type ToastState } from './components/Toast';
 import { IdlePage } from './pages/IdlePage';
 import { DataPage } from './pages/DataPage';
 import { ExecutiveDataPage } from './pages/ExecutiveDataPage';
@@ -17,6 +18,8 @@ import { AuthCallback } from './pages/AuthCallback';
 import { mockReviewData } from './data/mockData';
 import { fetchMockReviewSeed } from './data/mockApi';
 import { ReviewDataAdapter } from './adapters/ReviewDataAdapter';
+import { copyTextToClipboard } from './utils/clipboard';
+import { joinUrl, resolveBaseUrl } from './utils/url';
 
 gsap.registerPlugin(TextPlugin, ScrollToPlugin);
 
@@ -67,6 +70,7 @@ function App() {
     authErrorMessage,
     startAuthFlow,
     startDataTimeline,
+    startSharedReportView,
     handleAuthComplete,
     replayExecAnimation,
     downloadPdf,
@@ -86,6 +90,56 @@ function App() {
   });
 
   const [reviewData, setReviewData] = useState(mockReviewData);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const clearToastTimer = useCallback(() => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, []);
+
+  const showToast = useCallback(
+    (message: string, tone: ToastState['tone'] = 'info', durationMs: number = 2600) => {
+      clearToastTimer();
+      setToast({ message, tone });
+      toastTimerRef.current = window.setTimeout(() => {
+        setToast(null);
+        toastTimerRef.current = null;
+      }, durationMs);
+    },
+    [clearToastTimer]
+  );
+
+  useEffect(() => {
+    return () => {
+      clearToastTimer();
+    };
+  }, [clearToastTimer]);
+
+  const shareToVivaEngage = useCallback(async () => {
+    const reportId = displayUser.trim() || 'guest';
+    const apiBaseUrl = resolveBaseUrl(import.meta.env.VITE_API_BASE);
+    const shadowUrl = joinUrl(apiBaseUrl, `share/card/${encodeURIComponent(reportId)}`);
+    const shareText = `Check out my Yearly Review: ${shadowUrl}`;
+
+    const engageTarget = (import.meta.env.VITE_VIVA_ENGAGE_URL as string | undefined) || 'https://web.yammer.com/main/feed';
+    const popup = window.open(engageTarget, '_blank', 'noopener,noreferrer');
+
+    const copied = await copyTextToClipboard(shareText);
+    if (!copied) {
+      showToast('Copy failed. Please copy the link manually.', 'error');
+      return;
+    }
+
+    if (!popup) {
+      showToast('Copied. Popups are blocked; open Viva Engage and paste manually.', 'info');
+      return;
+    }
+
+    showToast('Copied. Paste it in the opened Viva Engage window.', 'success');
+  }, [displayUser, showToast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,8 +170,19 @@ function App() {
     startDataTimeline,
     replayExecAnimation,
     downloadPdf,
+    shareReport: shareToVivaEngage,
     resetToIdle,
   });
+
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/report\/view\/([^/]+)$/);
+    if (!match) return;
+
+    const reportId = decodeURIComponent(match[1] || '').trim();
+    if (!reportId) return;
+
+    startSharedReportView(reportId);
+  }, [startSharedReportView]);
 
   useEffect(() => {
     let cursorTween: gsap.core.Tween | null = null;
@@ -175,6 +240,7 @@ function App() {
           showMenu={showMenu}
           onReplay={() => startDataTimeline(true)}
           onDownload={downloadPdf}
+          onShare={shareToVivaEngage}
         />
       )}
       {isExecutiveMode && (
@@ -189,6 +255,7 @@ function App() {
       )}
 
       {showScrollbar && <ASCIIScrollbar scrollProgress={scrollProgress} />}
+      {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
       <StatusBar status={status} />
     </div>
   );
