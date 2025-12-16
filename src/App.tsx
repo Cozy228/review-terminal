@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
@@ -15,6 +15,8 @@ import { ExecutiveDataPage } from './pages/ExecutiveDataPage';
 import { ExecutiveEntryPage } from './pages/ExecutiveEntryPage';
 import { AuthCallback } from './pages/AuthCallback';
 import { mockReviewData } from './data/mockData';
+import { fetchMockReviewSeed } from './data/mockApi';
+import { ReviewDataAdapter } from './adapters/ReviewDataAdapter';
 
 gsap.registerPlugin(TextPlugin, ScrollToPlugin);
 
@@ -83,6 +85,28 @@ function App() {
     setUserScrolling,
   });
 
+  const [reviewData, setReviewData] = useState(mockReviewData);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const res = await fetchMockReviewSeed(displayUser || 'guest');
+      if (!res.ok) return;
+
+      const body = await res.json();
+      if (!body.ok) return;
+
+      const next = ReviewDataAdapter.fromSeed(body.data);
+      if (!cancelled) setReviewData(next);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [displayUser]);
+
   useKeyboardNav({
     phase,
     isExecutiveMode,
@@ -147,7 +171,7 @@ function App() {
         <DataPage
           ref={dataPageRef}
           displayUser={displayUser}
-          reviewData={mockReviewData}
+          reviewData={reviewData}
           showMenu={showMenu}
           onReplay={() => startDataTimeline(true)}
           onDownload={downloadPdf}
@@ -156,6 +180,7 @@ function App() {
       {isExecutiveMode && (
         <ExecutiveDataPage
           ref={execPageRef}
+          email={execEmail}
           showMenu={execShowMenu}
           onReplay={replayExecAnimation}
           onDownload={downloadPdf}

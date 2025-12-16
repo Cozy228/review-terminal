@@ -248,6 +248,7 @@ export interface TeamSummary {
 
 // ExecutiveDataPage Props
 export interface ExecutiveDataPageProps {
+  email?: string;
   showMenu?: boolean;
   onReplay?: () => void;
   onDownload?: () => void;

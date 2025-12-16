@@ -1,21 +1,46 @@
-import { forwardRef, useMemo } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 import { TerminalCommand } from '../components/retro';
 import { BasicsSection, DeliverySection, QualitySection, CostSection, CicdSection, JiraSection, CommunitySection } from '../components/exec';
 import { executiveMock } from '../data/executiveMock';
 import type { ExecutiveDataPageProps, TeamBasicsData, TeamDeliveryData, TeamQualityData, TeamCICDData, TeamJiraData, TeamAIData, Community } from '../types/executive';
+import type { DepartmentEntity } from '../types/executive';
+import { fetchMockExecutiveDepartment } from '../data/mockApi';
 import '../styles/retro-game.css';
 import '../styles/executive-charts.css';
 
 export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPageProps>(
-  ({ showMenu, onReplay, onDownload, onBack }, ref) => {
+  ({ email = '', showMenu, onReplay, onDownload, onBack }, ref) => {
+    const [department, setDepartment] = useState<DepartmentEntity>(executiveMock);
+
+    useEffect(() => {
+      let cancelled = false;
+
+      const run = async () => {
+        const res = await fetchMockExecutiveDepartment(email);
+        if (!res.ok) return;
+        const body = await res.json();
+        if (!body.ok) return;
+
+        if (!cancelled) setDepartment(body.data);
+      };
+
+      void run();
+      return () => {
+        cancelled = true;
+      };
+    }, [email]);
+
     // Transform DepartmentEntity to section data structures
-    const cto = { name: executiveMock.managerName, title: executiveMock.title };
+    const cto = useMemo(
+      () => ({ name: department.managerName, title: department.title }),
+      [department.managerName, department.title]
+    );
 
     const basics: TeamBasicsData = useMemo(() => ({
-      headcount: executiveMock.headcount,
-      employeePct: executiveMock.employeePct,
-      contractorPct: executiveMock.contractorPct,
-    }), []);
+      headcount: department.headcount,
+      employeePct: department.employeePct,
+      contractorPct: department.contractorPct,
+    }), [department]);
 
     const delivery: TeamDeliveryData = useMemo(() => ({
       primary: [
@@ -24,7 +49,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
           name: 'Velocity',
           label: 'Velocity',
           unit: ' SP/mo',
-          avg: executiveMock.velocity.spPerMonth,
+          avg: department.velocity.spPerMonth,
           min: 45,
           max: 62,
           median: 52,
@@ -35,7 +60,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
           name: 'Lead Time',
           label: 'Lead Time',
           unit: ' days',
-          avg: executiveMock.velocity.leadTimeDays,
+          avg: department.velocity.leadTimeDays,
           min: 5,
           max: 12,
           median: 7.5,
@@ -47,7 +72,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
           name: 'Deployments',
           label: 'Deployments',
           unit: '/mo',
-          avg: executiveMock.deployment.productionPerMonth,
+          avg: department.deployment.productionPerMonth,
           min: 45,
           max: 85,
           median: 65,
@@ -61,7 +86,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
           name: 'Commits',
           label: 'Commits/person',
           unit: '/mo',
-          avg: Math.round(executiveMock.commits.monthlyAvg / executiveMock.headcount),
+          avg: Math.round(department.commits.monthlyAvg / department.headcount),
           min: 3,
           max: 8,
           median: 5,
@@ -72,7 +97,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
           name: 'PR Success',
           label: 'PR Success',
           unit: '%',
-          avg: executiveMock.commits.prSuccess,
+          avg: department.commits.prSuccess,
           min: 85,
           max: 96,
           median: 91,
@@ -84,7 +109,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
           name: 'Build Success',
           label: 'Build Success',
           unit: '%',
-          avg: executiveMock.deployment.buildSuccessRate,
+          avg: department.deployment.buildSuccessRate,
           min: 88,
           max: 98,
           median: 95,
@@ -99,19 +124,19 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
         unit: 'headcount',
         breakdown: [
           {
-            name: executiveMock.vendorBenchmarks.ssc.name,
+            name: department.vendorBenchmarks.ssc.name,
             headcount: 72,
             employeePct: 100,
             performanceScore: 94,
           },
           {
-            name: executiveMock.vendorBenchmarks.accenture.name,
+            name: department.vendorBenchmarks.accenture.name,
             headcount: 15,
             employeePct: 0,
             performanceScore: 87,
           },
           {
-            name: executiveMock.vendorBenchmarks.infosys.name,
+            name: department.vendorBenchmarks.infosys.name,
             headcount: 8,
             employeePct: 0,
             performanceScore: 82,
@@ -123,9 +148,9 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
         median: 87,
         status: 'green' as const,
       },
-      vendorBenchmarks: executiveMock.vendorBenchmarks,
-      monthlyTrends: executiveMock.monthlyTrends,
-    }), []);
+      vendorBenchmarks: department.vendorBenchmarks,
+      monthlyTrends: department.monthlyTrends,
+    }), [department]);
 
     const quality: TeamQualityData = useMemo(() => ({
       codeQuality: [
@@ -136,35 +161,35 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
       ],
       slaRate: 93,
       slaTarget: 95,
-      prSuccessRate: executiveMock.commits.prSuccess,
+      prSuccessRate: department.commits.prSuccess,
       prTarget: 95,
-    }), []);
+    }), [department]);
 
     const cicd: TeamCICDData = useMemo(() => ({
       builds: {
         total: 27380,
         successful: 25912,
         failed: 1468,
-        successRate: executiveMock.deployment.buildSuccessRate,
+        successRate: department.deployment.buildSuccessRate,
       },
       deployments: {
-        total: executiveMock.totalDeployments,
-        production: executiveMock.productionDeployments,
-        staging: executiveMock.totalDeployments - executiveMock.productionDeployments,
+        total: department.totalDeployments,
+        production: department.productionDeployments,
+        staging: department.totalDeployments - department.productionDeployments,
       },
-      avgBuildTime: executiveMock.deployment.avgBuildTime,
+      avgBuildTime: department.deployment.avgBuildTime,
       pipelinesConfigured: 78,
       avg: 94.6,
       min: 88.2,
       max: 98.5,
       median: 95.1,
-    }), []);
+    }), [department]);
 
     const jira: TeamJiraData = useMemo(() => ({
       tickets: {
-        total: executiveMock.totalTickets,
-        completed: executiveMock.completedTickets,
-        inProgress: executiveMock.totalTickets - executiveMock.completedTickets,
+        total: department.totalTickets,
+        completed: department.completedTickets,
+        inProgress: department.totalTickets - department.completedTickets,
         completionRate: 82.2,
       },
       storiesCompleted: 11406,
@@ -177,7 +202,7 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
       min: 0.8,
       max: 8.5,
       median: 2.2,
-    }), []);
+    }), [department]);
 
     const ai: TeamAIData = useMemo(() => ({
       aiAdoption: [
@@ -208,10 +233,10 @@ export const ExecutiveDataPage = forwardRef<HTMLDivElement, ExecutiveDataPagePro
         velocity: 53,
         qualityGrade: 'A',
       },
-      acceptanceRate: executiveMock.productivity.acceptanceRate,
-    }), []);
+      acceptanceRate: department.productivity.acceptanceRate,
+    }), [department]);
 
-    const community: Community = useMemo(() => executiveMock.community, []);
+    const community: Community = useMemo(() => department.community, [department]);
 
     return (
       <div

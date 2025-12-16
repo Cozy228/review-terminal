@@ -1,6 +1,7 @@
-import type { ReviewData } from '../types';
+import type { ReviewData, ReviewDataSeed } from '../types';
+import { ReviewDataAdapter } from '../adapters/ReviewDataAdapter';
 
-export const mockReviewData: ReviewData = {
+export const mockReviewSeed: ReviewDataSeed = {
   user: {
     username: 'ziyu123213',
     role: 'Senior Frontend Developer',
@@ -119,30 +120,12 @@ export const mockReviewData: ReviewData = {
     bravosReceived: 34,
     bravosGiven: 48,
     activities: [
-      { type: 'tech-talk', name: 'Design Systems at Scale', date: '2025-03-12' },
-      { type: 'hackathon', name: 'AI DevTools Sprint', date: '2025-06-04' },
-      { type: 'session', name: 'Frontend Performance Clinic', date: '2025-08-19' },
-      { type: 'tech-talk', name: 'Real-time Dashboards', date: '2025-10-07' },
+      { role: 'author', type: 'tech-talk', name: 'Design Systems at Scale', date: '2025-03-12' },
+      { role: 'participant', type: 'hackathon', name: 'AI DevTools Sprint', date: '2025-06-04' },
+      { role: 'participant', type: 'session', name: 'Frontend Performance Clinic', date: '2025-08-19' },
+      { role: 'participant', type: 'tech-talk', name: 'Real-time Dashboards', date: '2025-10-07' },
     ],
-  },
-  summary: {
-    highlights: [
-      'Shipped 38 production deployments like a boss - maintaining a godlike 94.6% success rate',
-      'Merged 172 PRs faster than you can say "LGTM" - averaging under 5 hours per review',
-      'Crushed 61 bugs into oblivion and commanded 7 epic quests across the codebase',
-      'Kept a blazing 47-day commit streak alive while AI-pairing with 62% Copilot synergy',
-    ],
-    narrative:
-      'A force of nature in the codebase - juggling deployments, code reviews, and bug hunts without breaking a sweat. DevOps skills leveling up fast with pipeline wizardry and sub-4-minute builds. Also sneaking in AI and product thinking on the side like a true polymath.',
-    badges: [
-      { id: 'commit-champion', name: 'Commit Champion', icon: '🏆', description: 'Absolutely demolished 2000+ commits like a beast', rarity: 'legendary' },
-      { id: 'pr-velocity', name: 'PR Velocity', icon: '⚡', description: 'Blazing fast merged 100+ PRs this year', rarity: 'epic' },
-      { id: 'bug-squasher', name: 'Bug Squasher', icon: '🐛', description: 'Annihilated 50+ bugs in epic debugging battles', rarity: 'rare' },
-      { id: 'team-player', name: 'Team Player', icon: '🤝', description: 'Crushed it with 20+ developers in collaboration', rarity: 'epic' },
-      { id: 'early-bird', name: 'Early Bird', icon: '🌅', description: 'Snagged that sweet first commit of year', rarity: 'common' },
-      { id: 'streak-master', name: 'Streak Master', icon: '🔥', description: 'Kept a blazing 30+ day streak alive', rarity: 'rare' },
-    ],
-    overallScore: 92,
-    growthPercentage: 18,
   },
 };
+
+export const mockReviewData: ReviewData = ReviewDataAdapter.fromSeed(mockReviewSeed);

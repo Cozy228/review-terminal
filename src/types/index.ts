@@ -136,9 +136,10 @@ export interface LearningData {
 export type CommunityActivityType = 'tech-talk' | 'hackathon' | 'session';
 
 export interface ActivityData {
-  type: CommunityActivityType;
+  role: string;
   name: string;
   date: string;
+  type: CommunityActivityType;
 }
 
 export interface CommunityData {
@@ -159,7 +160,6 @@ export interface Badge {
 
 export interface SummaryData {
   highlights: string[];
-  narrative: string;
   badges: Badge[];
   overallScore: number;
   growthPercentage: number;
@@ -177,6 +177,8 @@ export interface ReviewData {
   community: CommunityData;
   summary: SummaryData;
 }
+
+export type ReviewDataSeed = Omit<ReviewData, 'summary'>;
 
 export type AnimationPhase =
   | 'boot'
